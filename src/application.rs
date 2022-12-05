@@ -1,11 +1,10 @@
-use iced::widget::{Row, TextInput, column, Button, Image, Column, Scrollable, PickList, Text};
 use crate::search::{SearchProgress, Source, SearchParameters};
-use iced::{Application, Command, Element, Length, Theme};
+use iced::{Application, Command, Element, Theme};
+use crate::gui::{post_image_list, tob_bar};
 use crate::download::DownloadProgress;
 use philia::prelude::GenericPost;
 use iced::widget::image::Handle;
-use std::iter::repeat_with;
-use std::str::FromStr;
+use iced::widget::column;
 
 #[derive(Default)]
 pub struct Philia {
@@ -17,8 +16,6 @@ pub struct Philia {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-	#[allow(unused)]
-	None,
 	SearchRequested,
 	SearchQueryChanged(String),
 	SearchSourceChanged(Source),
@@ -58,8 +55,6 @@ impl Application for Philia {
 	fn update(&mut self, message: Self::Message) -> Command<Message> {
 		use Message::*;
 		match message {
-			None => Command::none(),
-
 			SearchQueryChanged(query) => {
 				self.search_parameters.tags = query;
 				Command::none()
@@ -106,100 +101,15 @@ impl Application for Philia {
 	}
 
 	fn view(&self) -> Element<'_, Self::Message> {
-		let can_search =
-			self.search_progress == SearchProgress::Complete && self.search_parameters.count != 0;
+		let search = tob_bar(
+			&self.search_parameters,
+			&self.search_progress,
+			&self.download_progress
+		);
+		
+		let images = self.posts.iter().map(|(_, _, handle)| handle);
+		let images = post_image_list(images, 6);
 
-		let search_query = {
-			let search_query = TextInput::new(
-				"Enter tags to search",
-				&self.search_parameters.tags,
-				|value| Message::SearchQueryChanged(value),
-			);
-
-			match can_search {
-				false => search_query,
-				true => search_query.on_submit(Message::SearchRequested),
-			}
-			.into()
-		};
-
-		let search_count = {
-			let value = format!("{}", self.search_parameters.count);
-
-			let search_count = TextInput::new("Count", &value, |value| {
-				Message::SearchCountChanged(usize::from_str(&value).ok())
-			})
-			.width(Length::Units(64));
-
-			match can_search {
-				false => search_count,
-				true => search_count.on_submit(Message::SearchRequested),
-			}
-			.into()
-		};
-
-		let search_source = PickList::new(
-			vec![Source::E621, Source::Rule34, Source::Danbooru],
-			Some(self.search_parameters.source),
-			|source| Message::SearchSourceChanged(source),
-		)
-		.into();
-
-		let search_button = match self.search_progress {
-			SearchProgress::Complete => match can_search {
-				false => Button::new("Search"),
-				true => Button::new("Search").on_press(Message::SearchRequested),
-			},
-			SearchProgress::Searching => Button::new("Searching"),
-			SearchProgress::LoadingPosts { loaded, total } => {
-				Button::new(Text::new(format!("Loaded {} posts of {}", loaded, total)))
-			}
-		}
-		.into();
-
-		let download_button = match self.download_progress {
-			DownloadProgress::DownloadingPosts { downloaded, total } => {
-				let text = format!("Downloaded {} of {}", downloaded, total);
-				Button::new(Text::new(text))
-			}
-
-			DownloadProgress::Complete => {
-				if can_search {
-					Button::new("Download All").on_press(Message::DownloadPosts)
-				} else {
-					Button::new("Download All")
-				}
-			}
-		}
-		.into();
-
-		let search = Row::with_children(vec![
-			search_query,
-			search_count,
-			search_source,
-			search_button,
-			download_button,
-		])
-		.spacing(4);
-
-		let mut columns: Vec<_> = repeat_with(|| vec![]).take(6).collect();
-		for (i, _, handle) in self.posts.iter() {
-			let image = Image::new(handle.clone()).width(Length::Fill);
-
-			let column = *i % columns.len();
-			columns[column].push(image.into());
-		}
-
-		let images = Row::with_children(
-			columns
-				.into_iter()
-				.map(|i| Column::with_children(i).width(Length::Fill).into())
-				.collect(),
-		)
-		.width(Length::Fill);
-
-		let scroll = Scrollable::new(images);
-
-		column![search, scroll,].into()
+		column![search, images].into()
 	}
 }

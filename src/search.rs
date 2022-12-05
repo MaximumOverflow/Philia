@@ -87,7 +87,7 @@ pub fn search_progress_up(progress: &mut SearchProgress) {
 }
 
 pub fn load_posts(posts: Vec<GenericPost>, progress: &mut SearchProgress) -> Command<Message> {
-	if posts.len() == 0 {
+	if posts.is_empty() {
 		*progress = SearchProgress::Complete;
 		return Command::none();
 	}
