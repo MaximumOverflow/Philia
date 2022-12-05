@@ -1,23 +1,18 @@
 use iced::widget::{Row, TextInput, column, Button, Image, Column, Scrollable, PickList, Text};
+use crate::search::{SearchProgress, Source, SearchParameters};
 use iced::{Application, Command, Element, Length, Theme};
-use philia::prelude::{DownloadAsync, GenericPost, Post};
-use crate::search::{SearchProgress, Source};
+use crate::download::DownloadProgress;
+use philia::prelude::GenericPost;
 use iced::widget::image::Handle;
-use native_dialog::FileDialog;
 use std::iter::repeat_with;
 use std::str::FromStr;
 
 #[derive(Default)]
 pub struct Philia {
-	search_parameters: (
-		String,
-		Source,
-		Option<usize>
-	),
-	
-	search_progress: SearchProgress,
-	download_progress: Option<(usize, usize)>,
-	posts: Vec<(usize, GenericPost, Handle)>,
+	pub search_parameters: SearchParameters,
+	pub search_progress: SearchProgress,
+	pub download_progress: DownloadProgress,
+	pub posts: Vec<(usize, GenericPost, Handle)>,
 }
 
 #[derive(Debug, Clone)]
@@ -30,10 +25,10 @@ pub enum Message {
 	SearchCountChanged(Option<usize>),
 	SearchReturned(Vec<GenericPost>),
 	SearchProgressUp,
-	
+
 	DownloadPosts,
 	DownloadProgressUp,
-	PushPost((usize, GenericPost, Handle))
+	PushPost((usize, GenericPost, Handle)),
 }
 
 impl Application for Philia {
@@ -45,17 +40,16 @@ impl Application for Philia {
 	fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
 		(
 			Self {
-				search_parameters: (
-					String::new(),
-					Source::Danbooru,
-					Some(16)
-				),
+				search_parameters: SearchParameters {
+					count: 16,
+					tags: String::new(),
+					source: Source::Danbooru,
+				},
 				..Default::default()
 			},
-			Command::none()
+			Command::none(),
 		)
 	}
-
 
 	fn title(&self) -> String {
 		"Philia".into()
@@ -65,147 +59,92 @@ impl Application for Philia {
 		use Message::*;
 		match message {
 			None => Command::none(),
-			
-			SearchQueryChanged(query) => {
-				self.search_parameters.0 = query;
-				Command::none()
-			},
-			
-			SearchSourceChanged(source) => {
-				self.search_parameters.1 = source;
-				Command::none()
-			}
-			
-			SearchCountChanged(count) => {
-				self.search_parameters.2 = count;
-				Command::none()
-			},
-			
-			SearchRequested => {
-				self.posts.clear();
-				self.search_progress = SearchProgress::Searching;
-				crate::search::search(
-					self.search_parameters.0.clone(),
-					self.search_parameters.2.unwrap(),
-					self.search_parameters.1,
-				)
-			},
-			
-			SearchReturned(posts) => {
-				if posts.len() != 0 {
-					self.search_progress = SearchProgress::LoadingPosts {
-						loaded: 0,
-						total: posts.len()
-					};
 
-					crate::search::load_posts(posts)
-				} else {
-					Command::none()
-				}
-			},
-			
-			SearchProgressUp => {
-				self.search_progress_up();
+			SearchQueryChanged(query) => {
+				self.search_parameters.tags = query;
 				Command::none()
 			}
-			
+
+			SearchSourceChanged(source) => {
+				self.search_parameters.source = source;
+				Command::none()
+			}
+
+			SearchCountChanged(count) => {
+				self.search_parameters.count = count.unwrap_or_default();
+				Command::none()
+			}
+
+			SearchRequested => crate::search::perform_search(
+				&mut self.posts,
+				&mut self.search_progress,
+				&self.search_parameters,
+			),
+
+			SearchReturned(posts) => crate::search::load_posts(posts, &mut self.search_progress),
+
+			SearchProgressUp => {
+				crate::search::search_progress_up(&mut self.search_progress);
+				Command::none()
+			}
+
 			PushPost((i, post, handle)) => {
 				let index = self.posts.partition_point(|(idx, _, _)| *idx < i);
 				self.posts.insert(index, (i, post, handle));
-				self.search_progress_up();
+				crate::search::search_progress_up(&mut self.search_progress);
 				Command::none()
-			},
-			
+			}
+
 			DownloadPosts => {
-				let path = FileDialog::new()
-					.show_open_single_dir()
-					.unwrap();
-				
-				match path {
-					Option::None => Command::none(),
-					Some(dir) => {
-						self.download_progress = Some((0, self.posts.len()));
-						Command::batch(self.posts.iter().map(|(_, p, _)| {
-							let post = p.clone();
-							let dir = dir.clone();
-							Command::perform(async move {
-								if !dir.exists() {
-									std::fs::create_dir(&dir).unwrap();
-								}
-
-								match post.download_async().await {
-									Ok(bytes) => {
-										let txt = format!("{}.txt", post.id);
-										let img = format!("{}.{}", post.id, post.file_ext().unwrap());
-
-										let tags = post.tags.join(", ")
-											.replace(|c| c == '(', "\\(")
-											.replace(|c| c == ')', "\\)");
-
-										std::fs::write(dir.join(img), bytes).unwrap();
-										std::fs::write(dir.join(txt), &tags).unwrap();
-									}
-									_ => unimplemented!(),
-								}
-							}, |_| DownloadProgressUp)
-						}))
-					}
-				}
-			},
+				crate::download::download_posts(&self.posts, &mut self.download_progress)
+			}
 
 			DownloadProgressUp => {
-				let progress = self.download_progress.as_mut().unwrap();
-				progress.0 += 1;
-				
-				if progress.0 == progress.1 {
-					self.download_progress = Option::None;
-				}
-
-				Command::none()
+				crate::download::download_progress_up(&mut self.download_progress)
 			}
 		}
 	}
-	
+
 	fn view(&self) -> Element<'_, Self::Message> {
-		let can_search 
-			= self.search_progress == SearchProgress::Complete 
-			&& self.search_parameters.2.unwrap_or_default() != 0;
-		
+		let can_search =
+			self.search_progress == SearchProgress::Complete && self.search_parameters.count != 0;
+
 		let search_query = {
 			let search_query = TextInput::new(
 				"Enter tags to search",
-				&self.search_parameters.0,
-				|value| Message::SearchQueryChanged(value)
+				&self.search_parameters.tags,
+				|value| Message::SearchQueryChanged(value),
 			);
 
 			match can_search {
 				false => search_query,
 				true => search_query.on_submit(Message::SearchRequested),
-			}.into()
+			}
+			.into()
 		};
 
 		let search_count = {
-			let value = match self.search_parameters.2 {
-				None => String::new(),
-				Some(v) => format!("{}", v)
-			};
+			let value = format!("{}", self.search_parameters.count);
 
 			let search_count = TextInput::new("Count", &value, |value| {
 				Message::SearchCountChanged(usize::from_str(&value).ok())
-			}).width(Length::Units(64));
+			})
+			.width(Length::Units(64));
 
 			match can_search {
 				false => search_count,
 				true => search_count.on_submit(Message::SearchRequested),
-			}.into()
+			}
+			.into()
 		};
-		
+
 		let search_source = PickList::new(
 			vec![Source::E621, Source::Rule34, Source::Danbooru],
-			Some(self.search_parameters.1),
+			Some(self.search_parameters.source),
 			|source| Message::SearchSourceChanged(source),
-		).into();
-		
+		)
+		.into();
+
 		let search_button = match self.search_progress {
 			SearchProgress::Complete => match can_search {
 				false => Button::new("Search"),
@@ -215,64 +154,52 @@ impl Application for Philia {
 			SearchProgress::LoadingPosts { loaded, total } => {
 				Button::new(Text::new(format!("Loaded {} posts of {}", loaded, total)))
 			}
-		}.into();
-		
+		}
+		.into();
+
 		let download_button = match self.download_progress {
-			Some((current, count)) => {
-				let text = format!("Downloaded {} of {}", current, count);
+			DownloadProgress::DownloadingPosts { downloaded, total } => {
+				let text = format!("Downloaded {} of {}", downloaded, total);
 				Button::new(Text::new(text))
-			},
-			None => if can_search {
-				Button::new("Download All").on_press(Message::DownloadPosts)
 			}
-			else {
-				Button::new("Download All")
-			},
-		}.into();
-		
+
+			DownloadProgress::Complete => {
+				if can_search {
+					Button::new("Download All").on_press(Message::DownloadPosts)
+				} else {
+					Button::new("Download All")
+				}
+			}
+		}
+		.into();
+
 		let search = Row::with_children(vec![
 			search_query,
 			search_count,
 			search_source,
 			search_button,
 			download_button,
-		]).spacing(4);
-		
+		])
+		.spacing(4);
+
 		let mut columns: Vec<_> = repeat_with(|| vec![]).take(6).collect();
 		for (i, _, handle) in self.posts.iter() {
-			let image = Image::new(handle.clone())
-				.width(Length::Fill);
-			
+			let image = Image::new(handle.clone()).width(Length::Fill);
+
 			let column = *i % columns.len();
 			columns[column].push(image.into());
 		}
-		
-		let images = Row::with_children(columns
-			.into_iter()
-			.map(|i| {
-				Column::with_children(i)
-					.width(Length::Fill)
-					.into()
-			})
-			.collect()
-		).width(Length::Fill);
-		
-		let scroll = Scrollable::new(images);
-		
-		column![
-			search,
-			scroll,
-		].into()
-	}
-}
 
-impl Philia {
-	fn search_progress_up(&mut self) {
-		if let SearchProgress::LoadingPosts { loaded, total } = &mut self.search_progress {
-			*loaded += 1;
-			if *loaded == *total {
-				self.search_progress = SearchProgress::Complete;
-			}
-		}
+		let images = Row::with_children(
+			columns
+				.into_iter()
+				.map(|i| Column::with_children(i).width(Length::Fill).into())
+				.collect(),
+		)
+		.width(Length::Fill);
+
+		let scroll = Scrollable::new(images);
+
+		column![search, scroll,].into()
 	}
 }

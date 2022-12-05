@@ -1,0 +1,4 @@
+max_width = 100
+hard_tabs = true
+reorder_modules = false
+reorder_imports = false

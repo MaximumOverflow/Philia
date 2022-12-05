@@ -12,3 +12,11 @@ iced_native = "0.6.1"
 native-dialog = "0.6.3"
 philia = { path = "../philia" }
 iced = { version = "0.5.2", features = ["image", "tokio"] }
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.production]
+inherits = "release"
+lto = true
+strip = true
