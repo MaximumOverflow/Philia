@@ -1,16 +1,20 @@
-use iced::widget::{Column, Image, Row, Scrollable};
+use iced::widget::{Button, Column, Image, Row, Scrollable};
 use crate::application::Message;
 use iced_native::image::Handle;
 use std::iter::repeat_with;
-use iced::Length;
+use iced::{Length, Padding};
 
 pub fn post_image_list<'l>(
-	images: impl Iterator<Item=&'l Handle>,
+	images: impl Iterator<Item = &'l Handle>,
 	columns: usize,
 ) -> Scrollable<'l, Message> {
 	let mut columns: Vec<_> = repeat_with(Vec::new).take(columns).collect();
 	for (i, handle) in images.enumerate() {
 		let image = Image::new(handle.clone()).width(Length::Fill);
+		
+		let image = Button::new(image)
+			.on_press(Message::ShowPostAt(i))
+			.padding(Padding::new(0));
 
 		let column = i % columns.len();
 		columns[column].push(image.into());
@@ -21,7 +25,8 @@ pub fn post_image_list<'l>(
 			.into_iter()
 			.map(|i| Column::with_children(i).width(Length::Fill).into())
 			.collect(),
-	).width(Length::Fill);
+	)
+	.width(Length::FillPortion(2));
 
 	Scrollable::new(images)
 }

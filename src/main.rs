@@ -1,12 +1,12 @@
 #![windows_subsystem = "windows"]
 
-use iced::{Application, Settings};
 use crate::application::Philia;
+use iced::{Application, Settings};
 
-mod application;
-mod download;
-mod search;
 mod gui;
+mod search;
+mod download;
+mod application;
 
 fn main() {
 	Philia::run(Settings::default()).unwrap()

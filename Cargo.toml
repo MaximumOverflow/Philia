@@ -1,6 +1,6 @@
 [package]
 name = "philia_gui"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 image = "0.24.5"
 reqwest = "0.11.13"
+notify-rust = "4.6.0"
 iced_native = "0.6.1"
 native-dialog = "0.6.3"
 philia = { path = "../philia" }

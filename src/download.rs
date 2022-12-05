@@ -2,6 +2,7 @@ use philia::prelude::{DownloadAsync, GenericPost, Post};
 use crate::application::Message;
 use iced_native::image::Handle;
 use native_dialog::FileDialog;
+use notify_rust::Notification;
 use iced_native::Command;
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -49,8 +50,14 @@ pub fn download_posts(
 
 								std::fs::write(dir.join(img), bytes).unwrap();
 								std::fs::write(dir.join(txt), &tags).unwrap();
+							},
+							
+							Err(err) => {
+								let _ = native_dialog::MessageDialog::new()
+									.set_title(&format!("Could not download post {}", post.id))
+									.set_text(&format!("{:?}", err))
+									.show_alert();
 							}
-							_ => unimplemented!(),
 						}
 					},
 					|_| Message::DownloadProgressUp,
@@ -70,8 +77,26 @@ pub fn download_progress_up(progress: &mut DownloadProgress) -> Command<Message>
 
 		if *loaded == *total {
 			*progress = DownloadProgress::Complete;
+
+			let _ = Notification::new()
+				.summary("Download complete")
+				.body("All images have been downloaded")
+				.appname("Philia")
+				.icon("download")
+				.show();
 		}
 	}
 
+	Command::none()
+}
+
+pub fn save_preview(_: Handle) -> Command<Message> {
+	let _ = Notification::new()
+		.summary("Post not saved")
+		.body("Function not implemented")
+		.appname("Philia")
+		.icon("download")
+		.show();
+	
 	Command::none()
 }

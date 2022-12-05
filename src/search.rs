@@ -64,7 +64,11 @@ pub fn perform_search(
 		let posts = match search.await {
 			Ok(posts) => posts,
 			Err(err) => {
-				println!("{:#?}", err);
+				let _ = native_dialog::MessageDialog::new()
+					.set_title(&format!("{} returned an error", source))
+					.set_text(&format!("{:?}", err))
+					.show_alert();
+				
 				vec![]
 			}
 		};

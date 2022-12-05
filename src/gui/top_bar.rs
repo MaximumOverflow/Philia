@@ -22,7 +22,8 @@ pub fn tob_bar<'l>(
 		match can_search {
 			false => search_query,
 			true => search_query.on_submit(Message::SearchRequested),
-		}.into()
+		}
+		.into()
 	};
 
 	let search_count = {
@@ -30,12 +31,14 @@ pub fn tob_bar<'l>(
 
 		let search_count = TextInput::new("Count", &value, |value| {
 			Message::SearchCountChanged(usize::from_str(&value).ok())
-		}).width(Length::Units(64));
+		})
+		.width(Length::Units(64));
 
 		match can_search {
 			false => search_count,
 			true => search_count.on_submit(Message::SearchRequested),
-		}.into()
+		}
+		.into()
 	};
 
 	let search_source = PickList::new(
@@ -43,7 +46,7 @@ pub fn tob_bar<'l>(
 		Some(search_params.source),
 		Message::SearchSourceChanged,
 	)
-		.into();
+	.into();
 
 	let search_button = match search_progress {
 		SearchProgress::Complete => match can_search {
@@ -55,7 +58,7 @@ pub fn tob_bar<'l>(
 			Button::new(Text::new(format!("Loaded {} posts of {}", loaded, total)))
 		}
 	}
-		.into();
+	.into();
 
 	let download_button = match download_progress {
 		DownloadProgress::DownloadingPosts { downloaded, total } => {
@@ -71,7 +74,7 @@ pub fn tob_bar<'l>(
 			}
 		}
 	}
-		.into();
+	.into();
 
 	let search = Row::with_children(vec![
 		search_query,
@@ -79,7 +82,8 @@ pub fn tob_bar<'l>(
 		search_source,
 		search_button,
 		download_button,
-	]).spacing(4);
-	
+	])
+	.spacing(4);
+
 	search
 }
