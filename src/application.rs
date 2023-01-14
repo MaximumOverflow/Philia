@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::gui::{post_image_list, post_preview, PostPreview, tob_bar};
 use crate::search::{SearchProgress, Source, SearchParameters};
 use philia::prelude::{DownloadAsync, GenericPost};
@@ -14,7 +15,7 @@ pub struct Philia {
 	download_progress: DownloadProgress,
 
 	show: PostPreview,
-	posts: Vec<(usize, GenericPost, Handle)>,
+	posts: HashMap<usize, (GenericPost, Handle)>,
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +33,10 @@ pub enum Message {
 	DownloadPosts,
 	DownloadProgressUp,
 	DownloadPreview(Handle),
-	PushPost((usize, GenericPost, Handle)),
+	PushPost((GenericPost, Handle)),
 
 	HidePost,
-	ShowPostAt(usize),
+	ShowPostWithId(usize),
 	ShowPost(GenericPost, Handle),
 
 	CopyTags(String),
@@ -85,11 +86,9 @@ impl Application for Philia {
 				Command::none()
 			}
 
-			SearchRequested => crate::search::perform_search(
-				&mut self.posts,
-				&mut self.search_progress,
-				&self.search_parameters,
-			),
+			SearchRequested => {
+				crate::search::perform_search(&mut self.posts, &mut self.search_progress, &self.search_parameters)
+			}
 
 			SearchReturned(posts) => crate::search::load_posts(posts, &mut self.search_progress),
 
@@ -98,20 +97,15 @@ impl Application for Philia {
 				Command::none()
 			}
 
-			PushPost((i, post, handle)) => {
-				let index = self.posts.partition_point(|(idx, _, _)| *idx < i);
-				self.posts.insert(index, (i, post, handle));
+			PushPost((post, handle)) => {
+				self.posts.insert(post.id, (post, handle));
 				crate::search::search_progress_up(&mut self.search_progress);
 				Command::none()
 			}
 
-			DownloadPosts => {
-				crate::download::download_posts(&self.posts, &mut self.download_progress)
-			}
+			DownloadPosts => crate::download::download_posts(&self.posts, &mut self.download_progress),
 
-			DownloadProgressUp => {
-				crate::download::download_progress_up(&mut self.download_progress)
-			}
+			DownloadProgressUp => crate::download::download_progress_up(&mut self.download_progress),
 
 			DownloadPreview(handle) => crate::download::save_preview(handle),
 
@@ -125,11 +119,11 @@ impl Application for Philia {
 				Command::none()
 			}
 
-			ShowPostAt(index) => {
-				if let Some(post) = self.posts.get(index) {
+			ShowPostWithId(id) => {
+				if let Some((post, _)) = self.posts.get(&id) {
 					self.show = PostPreview::Loading;
+					let post = post.clone();
 
-					let post = post.1.clone();
 					Command::perform(
 						async move {
 							match post.download_async().await {
@@ -157,14 +151,8 @@ impl Application for Philia {
 	}
 
 	fn view(&self) -> Element<'_, Self::Message> {
-		let search = tob_bar(
-			&self.search_parameters,
-			&self.search_progress,
-			&self.download_progress,
-		);
-
-		let images = self.posts.iter().map(|(_, _, handle)| handle);
-		let images = post_image_list(images, 6);
+		let search = tob_bar(&self.search_parameters, &self.search_progress, &self.download_progress);
+		let images = post_image_list(self.posts.values(), 6);
 
 		let preview = post_preview(&self.show);
 		let view: Element<'_, Message> = match preview {

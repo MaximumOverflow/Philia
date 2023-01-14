@@ -13,11 +13,7 @@ pub fn tob_bar<'l>(
 	let can_search = *search_progress == SearchProgress::Complete && search_params.count != 0;
 
 	let search_query = {
-		let search_query = TextInput::new(
-			"Enter tags to search",
-			&search_params.tags,
-			Message::SearchQueryChanged,
-		);
+		let search_query = TextInput::new("Enter tags to search", &search_params.tags, Message::SearchQueryChanged);
 
 		match can_search {
 			false => search_query,

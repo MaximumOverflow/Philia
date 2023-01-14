@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 use crate::application::Philia;
 use iced::{Application, Settings};

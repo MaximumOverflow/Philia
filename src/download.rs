@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use philia::prelude::{DownloadAsync, GenericPost, Post};
 use native_dialog::{FileDialog, MessageDialog};
@@ -18,10 +19,14 @@ pub enum DownloadProgress {
 }
 
 pub fn download_posts(
-	posts: &Vec<(usize, GenericPost, Handle)>,
+	posts: &HashMap<usize, (GenericPost, Handle)>,
 	download_progress: &mut DownloadProgress,
 ) -> Command<Message> {
-	let path = FileDialog::new().show_open_single_dir().unwrap();
+	let path = match FileDialog::new().show_open_single_dir() {
+		Ok(Some(path)) => path,
+		Err(err) => panic!("{}", err),
+		_ => return Command::none(),
+	};
 
 	let add_letterboxing = MessageDialog::new()
 		.set_title("Add letterboxing?")
@@ -35,84 +40,74 @@ pub fn download_posts(
 		.show_confirm()
 		.unwrap();
 
-	match path {
-		None => Command::none(),
-		Some(dir) => {
-			*download_progress = DownloadProgress::DownloadingPosts {
-				downloaded: 0,
-				total: posts.len(),
-			};
-			Command::batch(posts.iter().map(|(_, p, _)| {
-				let post = p.clone();
-				let dir = dir.clone();
-				Command::perform(
-					async move {
-						if !dir.exists() {
-							std::fs::create_dir(&dir).unwrap();
-						}
+	*download_progress = DownloadProgress::DownloadingPosts {
+		downloaded: 0,
+		total: posts.len(),
+	};
 
-						let img = format!("{}.{}", post.id, post.file_ext().unwrap());
-						let img_path = dir.join(img);
+	Command::batch(posts.values().map(|(p, _)| {
+		let post = p.clone();
+		let dir = path.clone();
+		Command::perform(
+			async move {
+				if !dir.exists() {
+					std::fs::create_dir(&dir).unwrap();
+				}
 
-						if !img_path.exists() {
-							let mut retry = 0;
-							const RETRY_COUNT: usize = 8;
+				let img = format!("{}.{}", post.id, post.file_ext().unwrap());
+				let img_path = dir.join(img);
 
-							loop {
-								match post.download_async().await {
-									Ok(mut bytes) => {
-										if add_letterboxing {
-											apply_letterboxing(&mut bytes);
-										}
+				if !img_path.exists() {
+					let mut retry = 0;
+					const RETRY_COUNT: usize = 8;
 
-										std::fs::write(img_path, bytes).unwrap();
-
-										if save_tags {
-											let tags = post
-												.tags
-												.iter()
-												.map(|t| t.replace(|c| c == '_', " "))
-												.collect::<Vec<_>>();
-
-											let tags = tags
-												.join(", ")
-												.replace(|c| c == '(', "\\(")
-												.replace(|c| c == ')', "\\)");
-
-											let txt = format!("{}.txt", post.id);
-											std::fs::write(dir.join(txt), &tags).unwrap();
-										}
-
-										break;
-									}
-
-									Err(err) if retry == RETRY_COUNT => {
-										let _ = MessageDialog::new()
-											.set_title(&format!(
-												"Could not download post {}",
-												post.id
-											))
-											.set_text(&format!("{:?}", err))
-											.show_alert();
-									}
-
-									Err(_) => {
-										println!(
-											"Failed downloading post {}. Retry {} of {}.",
-											post.id, retry, RETRY_COUNT,
-										);
-
-										retry += 1;
-									}
+					loop {
+						match post.download_async().await {
+							Ok(mut bytes) => {
+								if add_letterboxing {
+									apply_letterboxing(&mut bytes);
 								}
+
+								std::fs::write(img_path, bytes).unwrap();
+
+								if save_tags {
+									let tags = post
+										.tags
+										.iter()
+										.map(|t| t.replace(|c| c == '_', " "))
+										.collect::<Vec<_>>();
+
+									let tags = tags
+										.join(", ")
+										.replace(|c| c == '(', "\\(")
+										.replace(|c| c == ')', "\\)");
+
+									let txt = format!("{}.txt", post.id);
+									std::fs::write(dir.join(txt), &tags).unwrap();
+								}
+
+								break;
+							}
+
+							Err(err) if retry == RETRY_COUNT => {
+								let _ = MessageDialog::new()
+									.set_title(&format!("Could not download post {}", post.id))
+									.set_text(&format!("{:?}", err))
+									.show_alert();
+							}
+
+							Err(_) => {
+								println!("Failed downloading post {}. Retry {} of {}.", post.id, retry, RETRY_COUNT,);
+
+								retry += 1;
 							}
 						}
-					},
-					|_| Message::DownloadProgressUp,
-				)
-			}))
-		}
-	}
+					}
+				}
+			},
+			|_| Message::DownloadProgressUp,
+		)
+	}))
 }
 
 pub fn download_progress_up(progress: &mut DownloadProgress) -> Command<Message> {
@@ -163,7 +158,5 @@ fn apply_letterboxing(buffer: &mut Vec<u8>) {
 	}
 
 	buffer.clear();
-	output
-		.write_to(&mut Cursor::new(buffer), ImageFormat::Png)
-		.unwrap();
+	output.write_to(&mut Cursor::new(buffer), ImageFormat::Png).unwrap();
 }
