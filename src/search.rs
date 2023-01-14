@@ -68,7 +68,7 @@ pub fn perform_search(
 					.set_title(&format!("{} returned an error", source))
 					.set_text(&format!("{:?}", err))
 					.show_alert();
-				
+
 				vec![]
 			}
 		};
@@ -104,31 +104,54 @@ pub fn load_posts(posts: Vec<GenericPost>, progress: &mut SearchProgress) -> Com
 	Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 		Command::perform(
 			async move {
-				match reqwest::get(&post.resource_url).await {
-					Ok(result) => match result.bytes().await {
-						Ok(bytes) => {
-							let mut bytes = bytes.to_vec();
-							let image = image::load_from_memory(&bytes).unwrap();
+				let mut retry = 0;
+				const RETRY_COUNT: usize = 8;
 
-							const HORIZONTAL_PIXELS: u32 = 512;
-							let aspect_ratio = image.height() as f32 / image.width() as f32;
+				loop {
+					match reqwest::get(&post.resource_url).await {
+						Ok(result) => match result.bytes().await {
+							Ok(bytes) => {
+								let mut bytes = bytes.to_vec();
+								let image = image::load_from_memory(&bytes).unwrap();
 
-							bytes.clear();
-							image
-								.resize(
-									HORIZONTAL_PIXELS,
-									(HORIZONTAL_PIXELS as f32 * aspect_ratio) as u32,
-									FilterType::Nearest,
-								)
-								.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
-								.unwrap();
+								const HORIZONTAL_PIXELS: u32 = 512;
+								let aspect_ratio = image.height() as f32 / image.width() as f32;
 
-							let handle = Handle::from_memory(bytes);
-							Message::PushPost((i, post, handle))
-						}
-						Err(_) => Message::SearchProgressUp,
-					},
-					Err(_) => Message::SearchProgressUp,
+								bytes.clear();
+								image
+									.resize(
+										HORIZONTAL_PIXELS,
+										(HORIZONTAL_PIXELS as f32 * aspect_ratio) as u32,
+										FilterType::Nearest,
+									)
+									.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
+									.unwrap();
+
+								let handle = Handle::from_memory(bytes);
+								break Message::PushPost((i, post, handle));
+							}
+
+							Err(_) if retry == RETRY_COUNT => {
+								println!(
+									"Failed downloading preview for post {}. Aborting...",
+									post.id
+								);
+								break Message::SearchProgressUp;
+							}
+
+							Err(_) => {
+								println!(
+									"Failed downloading preview for post {}. Retry {} of {}.",
+									post.id, retry, RETRY_COUNT,
+								);
+
+								retry += 1
+							}
+						},
+
+						Err(_) if retry == RETRY_COUNT => break Message::SearchProgressUp,
+						Err(_) => retry += 1,
+					}
 				}
 			},
 			|msg| msg,

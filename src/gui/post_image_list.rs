@@ -11,7 +11,7 @@ pub fn post_image_list<'l>(
 	let mut columns: Vec<_> = repeat_with(Vec::new).take(columns).collect();
 	for (i, handle) in images.enumerate() {
 		let image = Image::new(handle.clone()).width(Length::Fill);
-		
+
 		let image = Button::new(image)
 			.on_press(Message::ShowPostAt(i))
 			.padding(Padding::new(0));

@@ -3,8 +3,8 @@ use crate::search::{SearchProgress, Source, SearchParameters};
 use philia::prelude::{DownloadAsync, GenericPost};
 use iced::{Application, Command, Element, Theme};
 use crate::download::DownloadProgress;
-use iced::widget::image::Handle;
 use iced::widget::{column, Row};
+use iced::widget::image::Handle;
 use notify_rust::Notification;
 
 #[derive(Default)]
@@ -12,15 +12,16 @@ pub struct Philia {
 	search_progress: SearchProgress,
 	search_parameters: SearchParameters,
 	download_progress: DownloadProgress,
-	
+
 	show: PostPreview,
 	posts: Vec<(usize, GenericPost, Handle)>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-	#[allow(unused)] None,
-	
+	#[allow(unused)]
+	None,
+
 	SearchRequested,
 	SearchQueryChanged(String),
 	SearchSourceChanged(Source),
@@ -36,8 +37,8 @@ pub enum Message {
 	HidePost,
 	ShowPostAt(usize),
 	ShowPost(GenericPost, Handle),
-	
-	CopyTags(String)
+
+	CopyTags(String),
 }
 
 impl Application for Philia {
@@ -68,7 +69,7 @@ impl Application for Philia {
 		use Message::*;
 		match message {
 			None => Command::none(),
-			
+
 			SearchQueryChanged(query) => {
 				self.search_parameters.tags = query;
 				Command::none()
@@ -111,38 +112,38 @@ impl Application for Philia {
 			DownloadProgressUp => {
 				crate::download::download_progress_up(&mut self.download_progress)
 			}
-			
-			DownloadPreview(handle) => {
-				crate::download::save_preview(handle)
-			}
-			
+
+			DownloadPreview(handle) => crate::download::save_preview(handle),
+
 			HidePost => {
 				self.show = PostPreview::None;
 				Command::none()
-			},
-			
+			}
+
 			ShowPost(post, handle) => {
 				self.show = PostPreview::Loaded { post, handle };
 				Command::none()
 			}
-			
+
 			ShowPostAt(index) => {
 				if let Some(post) = self.posts.get(index) {
 					self.show = PostPreview::Loading;
-					
+
 					let post = post.1.clone();
-					Command::perform(async move {
-						match post.download_async().await {
-							Err(_) => HidePost,
-							Ok(bytes) => ShowPost(post, Handle::from_memory(bytes)),
-						}
-					}, |m| m)
-				}
-				else {
+					Command::perform(
+						async move {
+							match post.download_async().await {
+								Err(_) => HidePost,
+								Ok(bytes) => ShowPost(post, Handle::from_memory(bytes)),
+							}
+						},
+						|m| m,
+					)
+				} else {
 					Command::none()
 				}
-			},
-			
+			}
+
 			CopyTags(tags) => {
 				let _ = Notification::new()
 					.summary("Tags copied")
@@ -164,14 +165,11 @@ impl Application for Philia {
 
 		let images = self.posts.iter().map(|(_, _, handle)| handle);
 		let images = post_image_list(images, 6);
-		
+
 		let preview = post_preview(&self.show);
 		let view: Element<'_, Message> = match preview {
 			None => images.into(),
-			Some(preview) => Row::with_children(vec![
-				images.into(),
-				preview
-			]).into()
+			Some(preview) => Row::with_children(vec![images.into(), preview]).into(),
 		};
 
 		column![search, view].into()

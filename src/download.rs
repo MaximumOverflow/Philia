@@ -1,9 +1,11 @@
+use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use philia::prelude::{DownloadAsync, GenericPost, Post};
+use native_dialog::{FileDialog, MessageDialog};
 use crate::application::Message;
 use iced_native::image::Handle;
-use native_dialog::FileDialog;
 use notify_rust::Notification;
 use iced_native::Command;
+use std::io::Cursor;
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum DownloadProgress {
@@ -21,6 +23,18 @@ pub fn download_posts(
 ) -> Command<Message> {
 	let path = FileDialog::new().show_open_single_dir().unwrap();
 
+	let add_letterboxing = MessageDialog::new()
+		.set_title("Add letterboxing?")
+		.set_text("Would you like to add letterboxing to the images?")
+		.show_confirm()
+		.unwrap();
+
+	let save_tags = MessageDialog::new()
+		.set_title("Save tags?")
+		.set_text("Would you like to save the image's tags?")
+		.show_confirm()
+		.unwrap();
+
 	match path {
 		None => Command::none(),
 		Some(dir) => {
@@ -37,26 +51,60 @@ pub fn download_posts(
 							std::fs::create_dir(&dir).unwrap();
 						}
 
-						match post.download_async().await {
-							Ok(bytes) => {
-								let txt = format!("{}.txt", post.id);
-								let img = format!("{}.{}", post.id, post.file_ext().unwrap());
+						let img = format!("{}.{}", post.id, post.file_ext().unwrap());
+						let img_path = dir.join(img);
 
-								let tags = post
-									.tags
-									.join(", ")
-									.replace(|c| c == '(', "\\(")
-									.replace(|c| c == ')', "\\)");
+						if !img_path.exists() {
+							let mut retry = 0;
+							const RETRY_COUNT: usize = 8;
 
-								std::fs::write(dir.join(img), bytes).unwrap();
-								std::fs::write(dir.join(txt), &tags).unwrap();
-							},
-							
-							Err(err) => {
-								let _ = native_dialog::MessageDialog::new()
-									.set_title(&format!("Could not download post {}", post.id))
-									.set_text(&format!("{:?}", err))
-									.show_alert();
+							loop {
+								match post.download_async().await {
+									Ok(mut bytes) => {
+										if add_letterboxing {
+											apply_letterboxing(&mut bytes);
+										}
+
+										std::fs::write(img_path, bytes).unwrap();
+
+										if save_tags {
+											let tags = post
+												.tags
+												.iter()
+												.map(|t| t.replace(|c| c == '_', " "))
+												.collect::<Vec<_>>();
+
+											let tags = tags
+												.join(", ")
+												.replace(|c| c == '(', "\\(")
+												.replace(|c| c == ')', "\\)");
+
+											let txt = format!("{}.txt", post.id);
+											std::fs::write(dir.join(txt), &tags).unwrap();
+										}
+
+										break;
+									}
+
+									Err(err) if retry == RETRY_COUNT => {
+										let _ = MessageDialog::new()
+											.set_title(&format!(
+												"Could not download post {}",
+												post.id
+											))
+											.set_text(&format!("{:?}", err))
+											.show_alert();
+									}
+
+									Err(_) => {
+										println!(
+											"Failed downloading post {}. Retry {} of {}.",
+											post.id, retry, RETRY_COUNT,
+										);
+
+										retry += 1;
+									}
+								}
 							}
 						}
 					},
@@ -97,6 +145,25 @@ pub fn save_preview(_: Handle) -> Command<Message> {
 		.appname("Philia")
 		.icon("download")
 		.show();
-	
+
 	Command::none()
+}
+
+fn apply_letterboxing(buffer: &mut Vec<u8>) {
+	let image = image::load_from_memory(&buffer).unwrap();
+	let dimensions = image.width().max(image.height());
+	let mut output = ImageBuffer::from_pixel(dimensions, dimensions, [0, 0, 0, 255].into());
+
+	let x_offset = (dimensions - image.width()) / 2;
+	let y_offset = (dimensions - image.height()) / 2;
+	for (x, y, p) in image.pixels() {
+		unsafe {
+			output.unsafe_put_pixel(x + x_offset, y + y_offset, p);
+		}
+	}
+
+	buffer.clear();
+	output
+		.write_to(&mut Cursor::new(buffer), ImageFormat::Png)
+		.unwrap();
 }
