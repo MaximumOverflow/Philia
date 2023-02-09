@@ -1,12 +1,12 @@
-use std::collections::HashMap;
 use crate::gui::{post_image_list, post_preview, PostPreview, tob_bar};
 use crate::search::{SearchProgress, Source, SearchParameters};
 use philia::prelude::{DownloadAsync, GenericPost};
 use iced::{Application, Command, Element, Theme};
 use crate::download::DownloadProgress;
-use iced::widget::{column, Row};
 use iced::widget::image::Handle;
+use iced::widget::{Row, column};
 use notify_rust::Notification;
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct Philia {
@@ -27,6 +27,7 @@ pub enum Message {
 	SearchQueryChanged(String),
 	SearchSourceChanged(Source),
 	SearchCountChanged(Option<usize>),
+	SearchPageChanged(Option<usize>),
 	SearchReturned(Vec<GenericPost>),
 	SearchProgressUp,
 
@@ -52,9 +53,10 @@ impl Application for Philia {
 		(
 			Self {
 				search_parameters: SearchParameters {
+					page: 1,
 					count: 16,
 					tags: String::new(),
-					source: Source::Danbooru,
+					source: Source::default(),
 				},
 				..Default::default()
 			},
@@ -83,6 +85,11 @@ impl Application for Philia {
 
 			SearchCountChanged(count) => {
 				self.search_parameters.count = count.unwrap_or_default();
+				Command::none()
+			}
+
+			SearchPageChanged(count) => {
+				self.search_parameters.page = count.unwrap_or(1);
 				Command::none()
 			}
 

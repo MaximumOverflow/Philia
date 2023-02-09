@@ -1,21 +1,22 @@
-use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use philia::search::SearchBuilder;
 use crate::application::Message;
 use image::imageops::FilterType;
 use iced_native::image::Handle;
+use std::collections::HashMap;
 use iced_native::Command;
+use std::time::Duration;
 use philia::prelude::*;
 use image::ImageFormat;
 use std::io::Cursor;
-use std::time::Duration;
+use strum::EnumIter;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, EnumIter)]
 pub enum Source {
+	#[default]
 	E621,
 	Rule34,
-	#[default]
-	Danbooru,
+	// Danbooru,
 }
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -40,6 +41,7 @@ pub struct SearchParameters {
 	pub tags: String,
 	pub source: Source,
 	pub count: usize,
+	pub page: usize,
 }
 
 pub fn perform_search(
@@ -49,15 +51,20 @@ pub fn perform_search(
 ) -> Command<Message> {
 	posts.clear();
 	*progress = SearchProgress::Searching;
-	async fn search(tags: String, count: usize, source: Source) -> Message {
+	async fn search(tags: String, page: usize, count: usize, source: Source) -> Message {
 		let tags = tags.split(|c| c == ' ');
+
 		let mut search_builder = SearchBuilder::default();
-		search_builder.exclude_tag("animated").include_tags(tags).limit(count);
+		search_builder
+			.exclude_tag("animated")
+			.include_tags(tags)
+			.limit(count)
+			.page(page);
 
 		let search = match source {
 			Source::E621 => search_builder.dyn_search_async(&E621),
 			Source::Rule34 => search_builder.dyn_search_async(&Rule34),
-			Source::Danbooru => search_builder.dyn_search_async(&Danbooru),
+			// Source::Danbooru => search_builder.dyn_search_async(&Danbooru),
 		};
 
 		let posts = match search.await {
@@ -74,7 +81,7 @@ pub fn perform_search(
 		Message::SearchReturned(posts)
 	}
 
-	let search = search(parameters.tags.clone(), parameters.count, parameters.source);
+	let search = search(parameters.tags.clone(), parameters.page, parameters.count, parameters.source);
 	Command::perform(search, |f| f)
 }
 

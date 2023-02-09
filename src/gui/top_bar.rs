@@ -1,9 +1,10 @@
+use crate::search::{SearchParameters, SearchProgress, Source};
+use iced::widget::{Button, PickList, Row, Text, TextInput};
+use crate::download::DownloadProgress;
+use crate::application::Message;
+use strum::IntoEnumIterator;
 use std::str::FromStr;
 use iced::Length;
-use iced::widget::{Button, PickList, Row, Text, TextInput};
-use crate::application::Message;
-use crate::download::DownloadProgress;
-use crate::search::{SearchParameters, SearchProgress, Source};
 
 pub fn tob_bar<'l>(
 	search_params: &'l SearchParameters,
@@ -37,8 +38,22 @@ pub fn tob_bar<'l>(
 		.into()
 	};
 
+	let search_page = {
+		let value = format!("{}", search_params.page);
+
+		let search_page =
+			TextInput::new("Page", &value, |value| Message::SearchPageChanged(usize::from_str(&value).ok()))
+				.width(Length::Units(64));
+
+		match can_search {
+			false => search_page,
+			true => search_page.on_submit(Message::SearchRequested),
+		}
+		.into()
+	};
+
 	let search_source = PickList::new(
-		vec![Source::E621, Source::Rule34, Source::Danbooru],
+		Source::iter().collect::<Vec<_>>(),
 		Some(search_params.source),
 		Message::SearchSourceChanged,
 	)
@@ -75,6 +90,7 @@ pub fn tob_bar<'l>(
 	let search = Row::with_children(vec![
 		search_query,
 		search_count,
+		search_page,
 		search_source,
 		search_button,
 		download_button,

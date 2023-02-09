@@ -1,11 +1,12 @@
-use std::collections::HashMap;
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use philia::prelude::{DownloadAsync, GenericPost, Post};
 use native_dialog::{FileDialog, MessageDialog};
 use crate::application::Message;
 use iced_native::image::Handle;
 use notify_rust::Notification;
+use std::collections::HashMap;
 use iced_native::Command;
+use std::time::Duration;
 use std::io::Cursor;
 
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -62,6 +63,7 @@ pub fn download_posts(
 					const RETRY_COUNT: usize = 8;
 
 					loop {
+						std::thread::sleep(Duration::from_millis(100));
 						match post.download_async().await {
 							Ok(mut bytes) => {
 								if add_letterboxing {
@@ -90,15 +92,12 @@ pub fn download_posts(
 							}
 
 							Err(err) if retry == RETRY_COUNT => {
-								let _ = MessageDialog::new()
-									.set_title(&format!("Could not download post {}", post.id))
-									.set_text(&format!("{:?}", err))
-									.show_alert();
+								println!("Could not download post {}.\nError:{:?}", post.id, err);
+								break;
 							}
 
 							Err(_) => {
 								println!("Failed downloading post {}. Retry {} of {}.", post.id, retry, RETRY_COUNT,);
-
 								retry += 1;
 							}
 						}
