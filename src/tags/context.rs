@@ -23,13 +23,18 @@ impl TagSelectorContext {
 			Err(_) => Self::New,
 			Ok(cache) => match serde_json::from_str(&cache) {
 				Err(_) => Self::New,
-				Ok(cache) => Self::ShowTagSelector {
-					search: String::new(),
-					search_timestamp: None,
+				Ok(cache) => {
+					let mut shown_tags = vec![];
+					let available_tags = Arc::new(cache);
+					get_default_tags(&available_tags, &mut shown_tags);
 
-					shown_tags: vec![],
-					available_tags: Arc::new(cache),
-				},
+					Self::ShowTagSelector {
+						search: String::new(),
+						search_timestamp: None,
+						shown_tags,
+						available_tags,
+					}
+				}
 			},
 		}
 	}
@@ -97,22 +102,24 @@ impl TagSelectorMessage {
 			},
 
 			TagSelectorMessage::ReloadCompleted(tags) => {
+				let mut shown_tags = vec![];
+				get_default_tags(&tags, &mut shown_tags);
 				context.tag_selector = TagSelectorContext::ShowTagSelector {
+					shown_tags,
 					search: String::new(),
 					search_timestamp: None,
-					shown_tags: vec![],
 					available_tags: Arc::new(tags),
 				};
 
-				Command::none()
+				TagSelectorMessage::SearchChanged(String::new()).handle(context)
 			}
 
 			TagSelectorMessage::SearchChanged(new_search) => {
 				if let TagSelectorContext::ShowTagSelector {
 					search,
-					search_timestamp,
-					shown_tags,
 					available_tags,
+					search_timestamp,
+					..
 				} = &mut context.tag_selector
 				{
 					let timestamp = SystemTime::now();
@@ -120,31 +127,22 @@ impl TagSelectorMessage {
 					*search = new_search.clone();
 					*search_timestamp = Some(timestamp);
 
+					let mut shown_tags = vec![];
 					let available_tags = available_tags.clone();
-					let mut populate_shown_tags = std::mem::take(shown_tags);
 					Command::perform(
 						async move {
-							populate_shown_tags.clear();
-
 							if !new_search.is_empty() {
-								println!("Searching for {:?}...", new_search);
-
 								let results = available_tags
 									.iter()
 									.filter(|tag| tag.starts_with(&new_search))
 									.cloned();
 
-								populate_shown_tags.extend(results);
-
-								println! {
-									"Search completed in {:?} ({} / {})",
-									timestamp.elapsed().unwrap(),
-									populate_shown_tags.len(),
-									available_tags.len(),
-								}
+								shown_tags.extend(results);
+							} else {
+								get_default_tags(&available_tags, &mut shown_tags);
 							}
 
-							TagSelectorMessage::SearchCompleted(timestamp, populate_shown_tags).into()
+							TagSelectorMessage::SearchCompleted(timestamp, shown_tags).into()
 						},
 						|message| message,
 					)
@@ -188,4 +186,8 @@ impl TagSelectorMessage {
 			}
 		}
 	}
+}
+
+fn get_default_tags(available: &Vec<String>, vec: &mut Vec<String>) {
+	vec.extend(available.iter().cloned().take(50))
 }

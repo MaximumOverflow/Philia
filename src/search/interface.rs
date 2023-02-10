@@ -14,12 +14,14 @@ pub fn post_list(context: &Philia) -> Element {
 	let page: Element = NumberInput::new(context.search.page, usize::MAX, |value| {
 		SearchMessage::PageChanged(value).into()
 	})
+	.min(1)
 	.style(NumberInputStyle)
 	.into();
 
-	let per_page: Element = NumberInput::new(context.search.per_page, usize::MAX, |value| {
+	let per_page: Element = NumberInput::new(context.search.per_page, 320, |value| {
 		SearchMessage::PerPageChanged(value).into()
 	})
+	.min(1)
 	.style(NumberInputStyle)
 	.into();
 
