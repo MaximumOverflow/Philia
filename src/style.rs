@@ -22,7 +22,7 @@ impl application::StyleSheet for Theme {
 impl container::StyleSheet for Theme {
 	type Style = ();
 
-	fn appearance(&self, style: &Self::Style) -> Appearance {
+	fn appearance(&self, _style: &Self::Style) -> Appearance {
 		Appearance {
 			border_width: 1.0,
 			border_color: color!(0x3e3e42),
@@ -52,7 +52,7 @@ impl text_input::StyleSheet for Theme {
 			border_radius: 2.0,
 			border_width: 1.0,
 			background: color!(0x2b2d30).into(),
-			border_color: color!(0x3574f0).into(),
+			border_color: color!(0x3574f0),
 		}
 	}
 
@@ -208,7 +208,7 @@ pub struct PickListStyle;
 impl pick_list::StyleSheet for Theme {
 	type Style = PickListStyle;
 
-	fn active(&self, style: &Self::Style) -> pick_list::Appearance {
+	fn active(&self, _style: &Self::Style) -> pick_list::Appearance {
 		pick_list::Appearance {
 			text_color: color!(0xffffff),
 			placeholder_color: color!(0xdddddd),
@@ -220,7 +220,7 @@ impl pick_list::StyleSheet for Theme {
 		}
 	}
 
-	fn hovered(&self, style: &Self::Style) -> pick_list::Appearance {
+	fn hovered(&self, _style: &Self::Style) -> pick_list::Appearance {
 		pick_list::Appearance {
 			text_color: color!(0xffffff),
 			placeholder_color: color!(0xdddddd),
@@ -239,7 +239,7 @@ pub struct MenuStyle;
 impl iced_native::overlay::menu::StyleSheet for Theme {
 	type Style = MenuStyle;
 
-	fn appearance(&self, style: &Self::Style) -> iced::overlay::menu::Appearance {
+	fn appearance(&self, _style: &Self::Style) -> iced::overlay::menu::Appearance {
 		iced::overlay::menu::Appearance {
 			text_color: color!(0xdddddd),
 			background: color!(0x366ace).into(),
@@ -264,7 +264,7 @@ pub struct TogglerStyle;
 impl toggler::StyleSheet for Theme {
 	type Style = TogglerStyle;
 
-	fn active(&self, style: &Self::Style, is_active: bool) -> toggler::Appearance {
+	fn active(&self, _style: &Self::Style, is_active: bool) -> toggler::Appearance {
 		toggler::Appearance {
 			background: match is_active {
 				true => color!(0x366ace),
@@ -287,7 +287,7 @@ pub struct NumberInputStyle;
 impl number_input::StyleSheet for Theme {
 	type Style = NumberInputStyle;
 
-	fn active(&self, style: Self::Style) -> number_input::Appearance {
+	fn active(&self, _style: Self::Style) -> number_input::Appearance {
 		number_input::Appearance {
 			button_background: None,
 			icon_color: color!(0xffffff),
@@ -301,13 +301,13 @@ pub struct SplitStyle;
 impl split::StyleSheet for Theme {
 	type Style = SplitStyle;
 
-	fn active(&self, style: Self::Style) -> split::Appearance {
+	fn active(&self, _style: Self::Style) -> split::Appearance {
 		split::Appearance {
 			background: None,
 			first_background: None,
 			second_background: None,
 			border_width: 0.0,
-			border_color: color!(0x303030).into(),
+			border_color: color!(0x303030),
 			divider_background: color!(0x3e3e42).into(),
 			divider_border_width: 0.0,
 			divider_border_color: Default::default(),
@@ -329,7 +329,7 @@ pub struct CardStyle;
 impl card::StyleSheet for Theme {
 	type Style = CardStyle;
 
-	fn active(&self, style: Self::Style) -> card::Appearance {
+	fn active(&self, _style: Self::Style) -> card::Appearance {
 		card::Appearance {
 			border_width: 0.0,
 			border_radius: 0.0,
@@ -352,9 +352,9 @@ pub struct ModalStyle;
 impl modal::StyleSheet for Theme {
 	type Style = ModalStyle;
 
-	fn active(&self, style: Self::Style) -> style::modal::Appearance {
+	fn active(&self, _style: Self::Style) -> style::modal::Appearance {
 		style::modal::Appearance {
-			background: color!(48, 48, 48, 0.3).into(),
+			background: color!(48, 48, 48, 0.75).into(),
 		}
 	}
 }

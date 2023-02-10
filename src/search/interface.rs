@@ -1,6 +1,6 @@
 use std::iter::{repeat, repeat_with};
 use std::ops::Deref;
-use iced::{Alignment, Length};
+use iced::{Alignment, Length, Padding};
 use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image};
 use iced_aw::NumberInput;
 use strum::IntoEnumIterator;
@@ -22,27 +22,23 @@ pub fn post_list(context: &Philia) -> Element {
 	})
 	.style(NumberInputStyle)
 	.into();
-	
-	let search: Element = match context.search.status {
-		SearchStatus::Complete => {
-			Button::new(Text::new("Search").style(TextStyle::White))
-				.on_press(SearchMessage::SearchRequested.into())
-				.style(ButtonStyle::Default)
-				.into()
-		},
 
-		SearchStatus::Searching => {
-			Button::new(Text::new("Searching...").style(TextStyle::White))
-				.style(ButtonStyle::Default)
-				.into()
-		}
-		
+	let search: Element = match context.search.status {
+		SearchStatus::Complete => Button::new(Text::new("Search").style(TextStyle::White))
+			.on_press(SearchMessage::SearchRequested.into())
+			.style(ButtonStyle::Default)
+			.into(),
+
+		SearchStatus::Searching => Button::new(Text::new("Searching...").style(TextStyle::White))
+			.style(ButtonStyle::Default)
+			.into(),
+
 		SearchStatus::LoadingPosts { loaded, total } => {
 			let text = format!("Loading posts... {} / {}", loaded, total);
 			Button::new(Text::new(text).style(TextStyle::White))
 				.style(ButtonStyle::Default)
 				.into()
-		},
+		}
 	};
 
 	let settings: Element = Button::new(Text::new("Settings").style(TextStyle::White))
@@ -56,7 +52,7 @@ pub fn post_list(context: &Philia) -> Element {
 				.on_press(DownloadMessage::DownloadRequested(context.search.results.clone()).into())
 				.style(ButtonStyle::Default)
 				.into()
-		},
+		}
 
 		DownloadContext::Downloading { total, downloaded } => {
 			let text = format!("Downloading... {} / {}", downloaded, total);
@@ -64,25 +60,24 @@ pub fn post_list(context: &Philia) -> Element {
 				.style(ButtonStyle::Default)
 				.into()
 		}
-		
-		_ => {
-			Button::new(Text::new("Download all").style(TextStyle::White))
-				.style(ButtonStyle::Default)
-				.into()
-		}
-	};
-	
-	let source: Element = PickList::new(
-		Source::iter().collect::<Vec<_>>(), 
-		Some(context.source),
-		|source| Message::SourceChanged(source),
-	).style(PickListStyle).into();
 
-	let sorting: Element = PickList::new(
-		Sorting::iter().collect::<Vec<_>>(),
-		Some(context.search.sorting),
-		|sorting| SearchMessage::SortingChanged(sorting).into(),
-	).style(PickListStyle).into();
+		_ => Button::new(Text::new("Download all").style(TextStyle::White))
+			.style(ButtonStyle::Default)
+			.into(),
+	};
+
+	let source: Element = PickList::new(Source::iter().collect::<Vec<_>>(), Some(context.source), |source| {
+		Message::SourceChanged(source)
+	})
+	.style(PickListStyle)
+	.into();
+
+	let sorting: Element =
+		PickList::new(Sorting::iter().collect::<Vec<_>>(), Some(context.search.sorting), |sorting| {
+			SearchMessage::SortingChanged(sorting).into()
+		})
+		.style(PickListStyle)
+		.into();
 
 	let search_bar: Element = row![
 		Into::<Element>::into(Text::new("Page: ").style(TextStyle::White)),
@@ -97,6 +92,7 @@ pub fn post_list(context: &Philia) -> Element {
 	]
 	.spacing(8)
 	.align_items(Alignment::Center)
+	.padding(Padding::new(8))
 	.into();
 
 	let list: Element = {
@@ -117,14 +113,11 @@ pub fn post_list(context: &Philia) -> Element {
 				.into_iter()
 				.map(|i| Column::with_children(i).width(Length::Fill).into())
 				.collect(),
-		).into()
-	};
-	
-	let posts: Element = Scrollable::new(list)
-		.style(ScrollableStyle)
-		.into();
-
-	column![search_bar, posts]
-		.align_items(Alignment::Center)
+		)
 		.into()
+	};
+
+	let posts: Element = Scrollable::new(list).style(ScrollableStyle).into();
+
+	column![search_bar, posts].align_items(Alignment::Center).into()
 }

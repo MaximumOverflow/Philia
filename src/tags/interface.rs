@@ -3,17 +3,45 @@ use crate::style::{ButtonStyle, ScrollableStyle, TextInputStyle, TextStyle};
 use crate::tags::{TagSelectorContext, TagSelectorMessage};
 use crate::application::{Element, Philia};
 use iced::{Alignment, Length, Padding};
-use iced_native::{row, Widget};
+use iced::alignment::Horizontal;
 use iced_native::widget::Row;
+use iced_native::row;
 
 pub fn tag_selector(context: &Philia) -> Element {
 	match &context.tag_selector {
-		TagSelectorContext::New => Button::new(Text::new("Load tag list").style(TextStyle::White))
-			.on_press(TagSelectorMessage::ReloadRequested.into())
-			.style(ButtonStyle::Default)
-			.into(),
+		TagSelectorContext::New => {
+			let text: Element = Text::new(concat! {
+				"The tag list for this source has not been downloaded yet.\n",
+				"Would you like to download it? This process may take a while."
+			})
+			.style(TextStyle::White)
+			.horizontal_alignment(Horizontal::Center)
+			.into();
 
-		TagSelectorContext::LoadingTagList => Container::new("Loading tag list...").center_x().center_y().into(),
+			let button: Element = Button::new(Text::new("Download tag list").style(TextStyle::White))
+				.on_press(TagSelectorMessage::ReloadRequested.into())
+				.style(ButtonStyle::Default)
+				.into();
+
+			let content: Element = Column::with_children(vec![text, button])
+				.spacing(16)
+				.align_items(Alignment::Center)
+				.into();
+
+			Container::new(content)
+				.width(Length::Fill)
+				.height(Length::Fill)
+				.center_x()
+				.center_y()
+				.into()
+		}
+
+		TagSelectorContext::LoadingTagList => Container::new("Downloading tag list...")
+			.width(Length::Fill)
+			.height(Length::Fill)
+			.center_x()
+			.center_y()
+			.into(),
 
 		TagSelectorContext::ShowTagSelector {
 			search,
@@ -21,7 +49,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 			shown_tags,
 			..
 		} => {
-			let search_bar: Element = TextInput::new("Search tags", &search, |search| {
+			let search_bar: Element = TextInput::new("Search tags", search, |search| {
 				TagSelectorMessage::SearchChanged(search).into()
 			})
 			.style(TextInputStyle)

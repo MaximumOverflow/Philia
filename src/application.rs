@@ -33,7 +33,7 @@ pub enum Message {
 pub enum Source {
 	#[default]
 	E621,
-	Rule34,
+	// Rule34,
 }
 
 pub type Element<'l> = iced::Element<'l, Message, Renderer<Theme>>;
@@ -67,7 +67,7 @@ impl Application for Philia {
 				self.split = value;
 				Command::none()
 			}
-			
+
 			Message::SourceChanged(source) => {
 				self.source = source;
 				self.tag_selector = TagSelectorContext::new_or_cached(source);
@@ -82,24 +82,26 @@ impl Application for Philia {
 	}
 
 	fn view(&self) -> Element {
-		let post_list: Element = post_list(self).into();
-		let tag_selector: Element = tag_selector(self).into();
+		let post_list: Element = post_list(self);
+		let tag_selector: Element = tag_selector(self);
 
 		let content: Element = Split::new(post_list, tag_selector, Some(self.split), Axis::Horizontal, |value| {
 			Message::SplitChanged(value)
-		}).min_size_first(300).min_size_second(150).into();
-		
+		})
+		.min_size_first(300)
+		.min_size_second(150)
+		.into();
+
 		Modal::new(self.settings.show, content, || {
-			Card::new(
-				Text::new("Settings"),
-				settings(&self.settings)
-			)
+			Card::new(Text::new("Settings"), settings(&self.settings))
 				.on_close(SettingsMessage::SettingsClosed.into())
 				.max_width(512)
-				.style(CardStyle).into()
+				.style(CardStyle)
+				.into()
 		})
-			.backdrop(SettingsMessage::SettingsClosed.into())
-			.on_esc(SettingsMessage::SettingsClosed.into())
-			.style(ModalStyle).into()
+		.backdrop(SettingsMessage::SettingsClosed.into())
+		.on_esc(SettingsMessage::SettingsClosed.into())
+		.style(ModalStyle)
+		.into()
 	}
 }

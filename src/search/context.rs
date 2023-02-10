@@ -1,19 +1,16 @@
-use std::borrow::BorrowMut;
-use std::cell::{Ref, RefCell};
 use crate::application::{Message, Philia, Source};
-use std::collections::HashSet;
+use philia::prelude::{E621, GenericPost};
 use std::fmt::{Display, Formatter};
-use std::io::Cursor;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use iced_native::Command;
-use iced_native::image::Handle;
-use image::ImageFormat;
-use image::imageops::FilterType;
-use strum::EnumIter;
-use philia::prelude::{E621, GenericPost, Rule34};
 use philia::search::SearchBuilder;
+use image::imageops::FilterType;
+use iced_native::image::Handle;
+use std::collections::HashSet;
+use iced_native::Command;
+use std::time::Duration;
+use image::ImageFormat;
+use std::io::Cursor;
+use strum::EnumIter;
+use std::sync::Arc;
 
 pub struct SearchContext {
 	pub page: usize,
@@ -85,13 +82,12 @@ impl Sorting {
 				Sorting::DateAsc => "order:id",
 				Sorting::Score => "order:score",
 				Sorting::ScoreAsc => "order:score_asc",
-			}
-			Source::Rule34 => match self {
-				Sorting::Date => "",
-				Sorting::DateAsc => "sort:id",
-				Sorting::Score => "sort:score",
-				Sorting::ScoreAsc => "sort:score_asc",
-			}
+			}, // Source::Rule34 => match self {
+			   // 	Sorting::Date => "",
+			   // 	Sorting::DateAsc => "sort:id",
+			   // 	Sorting::Score => "sort:score",
+			   // 	Sorting::ScoreAsc => "sort:score_asc",
+			   // }
 		}
 	}
 }
@@ -124,25 +120,29 @@ impl SearchMessage {
 				context.search.per_page = value.clamp(1, 320);
 				Command::none()
 			}
-			
+
 			SearchMessage::SortingChanged(value) => {
 				context.search.sorting = value;
 				Command::none()
 			}
-			
+
 			SearchMessage::SearchReturned(posts) => {
-				let results = posts.iter().map(|info| SearchResult {
-					size: (0, 0),
-					info: info.clone(), preview: None
-				}).collect();
-				
+				let results = posts
+					.iter()
+					.map(|info| SearchResult {
+						size: (0, 0),
+						info: info.clone(),
+						preview: None,
+					})
+					.collect();
+
 				context.search.results = Arc::new(results);
-				
+
 				context.search.status = SearchStatus::LoadingPosts {
 					loaded: 0,
 					total: posts.len(),
 				};
-				
+
 				Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 					const RETRY_COUNT: usize = 8;
 
@@ -160,50 +160,54 @@ impl SearchMessage {
 						async_std::task::sleep(Duration::from_millis(500)).await;
 						*retry += 1;
 					}
-					
-					Command::perform(async move {
-						let mut retry = 0;
 
-						loop {
-							match reqwest::get(&post.resource_url).await {
-								Ok(result) => match result.bytes().await {
-									Ok(bytes) => {
-										let mut bytes = bytes.to_vec();
-										let image = match image::load_from_memory(&bytes) {
-											Ok(image) => image,
-											Err(_) => break handle_failed(i, &post),
-										};
+					Command::perform(
+						async move {
+							let mut retry = 0;
 
-										const HORIZONTAL_PIXELS: u32 = 512;
-										let aspect_ratio = image.height() as f32 / image.width() as f32;
+							loop {
+								match reqwest::get(&post.resource_url).await {
+									Ok(result) => match result.bytes().await {
+										Ok(bytes) => {
+											let mut bytes = bytes.to_vec();
+											let image = match image::load_from_memory(&bytes) {
+												Ok(image) => image,
+												Err(_) => break handle_failed(i, &post),
+											};
 
-										bytes.clear();
-										image
-											.resize(
-												HORIZONTAL_PIXELS,
-												(HORIZONTAL_PIXELS as f32 * aspect_ratio) as u32,
-												FilterType::Nearest,
+											const HORIZONTAL_PIXELS: u32 = 512;
+											let aspect_ratio = image.height() as f32 / image.width() as f32;
+
+											bytes.clear();
+											image
+												.resize(
+													HORIZONTAL_PIXELS,
+													(HORIZONTAL_PIXELS as f32 * aspect_ratio) as u32,
+													FilterType::Nearest,
+												)
+												.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
+												.unwrap();
+
+											let handle = Handle::from_memory(bytes);
+											break SearchMessage::PushImage(
+												i,
+												(image.width(), image.height()),
+												Some(handle),
 											)
-											.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
-											.unwrap();
+											.into();
+										}
 
-										let handle = Handle::from_memory(bytes);
-										break SearchMessage::PushImage(
-											i, 
-											(image.width(), image.height()), 
-											Some(handle)
-										).into();
-									}
+										Err(_) if retry == RETRY_COUNT => break handle_failed(i, &post),
+										Err(_) => handle_retry(&post, &mut retry).await,
+									},
 
 									Err(_) if retry == RETRY_COUNT => break handle_failed(i, &post),
 									Err(_) => handle_retry(&post, &mut retry).await,
-								},
-
-								Err(_) if retry == RETRY_COUNT => break handle_failed(i, &post),
-								Err(_) => handle_retry(&post, &mut retry).await,
+								}
 							}
-						}
-					}, |message| message)
+						},
+						|message| message,
+					)
 				}))
 			}
 
@@ -211,7 +215,7 @@ impl SearchMessage {
 				let source = context.source;
 				context.search.results = Arc::new(vec![]);
 				context.search.status = SearchStatus::Searching;
-				
+
 				let mut search_builder = SearchBuilder::default();
 				search_builder
 					.exclude_tag("animated")
@@ -220,52 +224,54 @@ impl SearchMessage {
 					.include_tag(context.search.sorting.as_tag(source))
 					.limit(context.search.per_page)
 					.page(context.search.page);
-				
-				Command::perform(async move {
-					println!("Staring search...");
-					
-					let search = match source {
-						Source::E621 => search_builder.dyn_search_async(&E621),
-						Source::Rule34 => search_builder.dyn_search_async(&Rule34),
-					};
-					
-					let posts = match search.await {
-						Ok(posts) => posts,
-						Err(err) => {
-							println!("{:?}", err);
-							vec![]
-						}
-					};
-					
-					println!("Found {} posts", posts.len());
-					
-					SearchMessage::SearchReturned(posts).into()
-				}, |message| message)
-			},
+
+				Command::perform(
+					async move {
+						println!("Staring search...");
+
+						let search = match source {
+							Source::E621 => search_builder.dyn_search_async(&E621),
+							// Source::Rule34 => search_builder.dyn_search_async(&Rule34),
+						};
+
+						let posts = match search.await {
+							Ok(posts) => posts,
+							Err(err) => {
+								println!("{:?}", err);
+								vec![]
+							}
+						};
+
+						println!("Found {} posts", posts.len());
+
+						SearchMessage::SearchReturned(posts).into()
+					},
+					|message| message,
+				)
+			}
 
 			SearchMessage::PushImage(i, size, handle) => {
 				if let SearchStatus::LoadingPosts { loaded, total } = &mut context.search.status {
 					if handle.is_some() {
 						*loaded += 1
-					}
-					else {
+					} else {
 						*total -= 1;
 					}
-					
+
 					if *loaded == *total {
 						println!("Search completed. {} posts loaded.", loaded);
 						context.search.status = SearchStatus::Complete;
 					}
 				}
-				
-				let mut results = Arc::get_mut(&mut context.search.results).unwrap();
+
+				let results = Arc::get_mut(&mut context.search.results).unwrap();
 				if let Some(result) = results.get_mut(i) {
 					result.size = size;
 					result.preview = handle
 				}
-				
+
 				Command::none()
-			},
+			}
 		}
 	}
 }

@@ -1,12 +1,12 @@
-use iced_native::Command;
-use serde::{Deserialize, Serialize};
 use crate::application::{Message, Philia};
+use serde::{Deserialize, Serialize};
+use iced_native::Command;
 
 pub const SETTINGS_PATH: &str = "settings.json";
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Settings {
-	#[serde(skip_serializing, default="Default::default")]
+	#[serde(skip_serializing, default = "Default::default")]
 	pub show: bool,
 	pub save_tags: bool,
 	pub apply_letterboxing: bool,
@@ -39,11 +39,11 @@ impl SettingsMessage {
 					let _ = std::fs::write(SETTINGS_PATH, json);
 				}
 			}
-			
+
 			SettingsMessage::ToggleSaveTags(value) => {
 				context.settings.save_tags = value;
 			}
-			
+
 			SettingsMessage::ToggleApplyLetterboxing(value) => {
 				context.settings.apply_letterboxing = value;
 			}

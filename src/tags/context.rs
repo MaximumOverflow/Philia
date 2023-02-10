@@ -93,8 +93,7 @@ impl TagSelectorMessage {
 						},
 						|message| message,
 					)
-				}
-				Source::Rule34 => Command::none(),
+				} // Source::Rule34 => Command::none(),
 			},
 
 			TagSelectorMessage::ReloadCompleted(tags) => {
@@ -102,7 +101,7 @@ impl TagSelectorMessage {
 					search: String::new(),
 					search_timestamp: None,
 					shown_tags: vec![],
-					available_tags: Arc::new(vec![]),
+					available_tags: Arc::new(tags),
 				};
 
 				Command::none()
@@ -119,7 +118,7 @@ impl TagSelectorMessage {
 					let timestamp = SystemTime::now();
 
 					*search = new_search.clone();
-					*search_timestamp = Some(timestamp.clone());
+					*search_timestamp = Some(timestamp);
 
 					let available_tags = available_tags.clone();
 					let mut populate_shown_tags = std::mem::take(shown_tags);
