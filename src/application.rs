@@ -1,172 +1,105 @@
-use crate::gui::{post_image_list, post_preview, PostPreview, tob_bar};
-use crate::search::{SearchProgress, Source, SearchParameters};
-use philia::prelude::{DownloadAsync, GenericPost};
-use iced::{Application, Command, Element, Theme};
-use crate::download::DownloadProgress;
-use iced::widget::image::Handle;
-use iced::widget::{Row, column};
-use notify_rust::Notification;
-use std::collections::HashMap;
+use iced::{Application, Renderer};
+use iced::widget::Text;
+use iced_aw::{Card, Modal, Split};
+use iced_aw::split::Axis;
+use iced_native::Command;
+use strum::{Display, EnumIter};
+use crate::download::{DownloadContext, DownloadMessage};
+use crate::search::*;
+use crate::settings::{Settings, settings, SettingsMessage};
+use crate::style::*;
+use crate::tags::*;
 
-#[derive(Default)]
 pub struct Philia {
-	search_progress: SearchProgress,
-	search_parameters: SearchParameters,
-	download_progress: DownloadProgress,
-
-	show: PostPreview,
-	posts: HashMap<usize, (GenericPost, Handle)>,
+	split: u16,
+	pub source: Source,
+	pub settings: Settings,
+	pub search: SearchContext,
+	pub download: DownloadContext,
+	pub tag_selector: TagSelectorContext,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-	#[allow(unused)]
-	None,
-
-	SearchRequested,
-	SearchQueryChanged(String),
-	SearchSourceChanged(Source),
-	SearchCountChanged(Option<usize>),
-	SearchPageChanged(Option<usize>),
-	SearchReturned(Vec<GenericPost>),
-	SearchProgressUp,
-
-	DownloadPosts,
-	DownloadProgressUp,
-	DownloadPreview(Handle),
-	PushPost((GenericPost, Handle)),
-
-	HidePost,
-	ShowPostWithId(usize),
-	ShowPost(GenericPost, Handle),
-
-	CopyTags(String),
+	SplitChanged(u16),
+	SourceChanged(Source),
+	SearchMessage(SearchMessage),
+	DownloadMessage(DownloadMessage),
+	SettingsMessage(SettingsMessage),
+	TagSelectorMessage(TagSelectorMessage),
 }
+
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, EnumIter, Display)]
+pub enum Source {
+	#[default]
+	E621,
+	Rule34,
+}
+
+pub type Element<'l> = iced::Element<'l, Message, Renderer<Theme>>;
 
 impl Application for Philia {
 	type Executor = iced::executor::Default;
 	type Message = Message;
 	type Theme = Theme;
-	type Flags = ();
+	type Flags = Settings;
 
-	fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
-		(
-			Self {
-				search_parameters: SearchParameters {
-					page: 1,
-					count: 16,
-					tags: String::new(),
-					source: Source::default(),
-				},
-				..Default::default()
-			},
-			Command::none(),
-		)
+	fn new(settings: Self::Flags) -> (Self, Command<Self::Message>) {
+		let philia = Self {
+			settings,
+			split: u16::MAX,
+			source: Default::default(),
+			search: Default::default(),
+			download: Default::default(),
+			tag_selector: TagSelectorContext::new_or_cached(Default::default()),
+		};
+
+		(philia, Command::none())
 	}
 
 	fn title(&self) -> String {
 		"Philia".into()
 	}
 
-	fn update(&mut self, message: Self::Message) -> Command<Message> {
-		use Message::*;
+	fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
 		match message {
-			None => Command::none(),
-
-			SearchQueryChanged(query) => {
-				self.search_parameters.tags = query;
+			Message::SplitChanged(value) => {
+				self.split = value;
+				Command::none()
+			}
+			
+			Message::SourceChanged(source) => {
+				self.source = source;
+				self.tag_selector = TagSelectorContext::new_or_cached(source);
 				Command::none()
 			}
 
-			SearchSourceChanged(source) => {
-				self.search_parameters.source = source;
-				Command::none()
-			}
-
-			SearchCountChanged(count) => {
-				self.search_parameters.count = count.unwrap_or_default();
-				Command::none()
-			}
-
-			SearchPageChanged(count) => {
-				self.search_parameters.page = count.unwrap_or(1);
-				Command::none()
-			}
-
-			SearchRequested => {
-				crate::search::perform_search(&mut self.posts, &mut self.search_progress, &self.search_parameters)
-			}
-
-			SearchReturned(posts) => crate::search::load_posts(posts, &mut self.search_progress),
-
-			SearchProgressUp => {
-				crate::search::search_progress_up(&mut self.search_progress);
-				Command::none()
-			}
-
-			PushPost((post, handle)) => {
-				self.posts.insert(post.id, (post, handle));
-				crate::search::search_progress_up(&mut self.search_progress);
-				Command::none()
-			}
-
-			DownloadPosts => crate::download::download_posts(&self.posts, &mut self.download_progress),
-
-			DownloadProgressUp => crate::download::download_progress_up(&mut self.download_progress),
-
-			DownloadPreview(handle) => crate::download::save_preview(handle),
-
-			HidePost => {
-				self.show = PostPreview::None;
-				Command::none()
-			}
-
-			ShowPost(post, handle) => {
-				self.show = PostPreview::Loaded { post, handle };
-				Command::none()
-			}
-
-			ShowPostWithId(id) => {
-				if let Some((post, _)) = self.posts.get(&id) {
-					self.show = PostPreview::Loading;
-					let post = post.clone();
-
-					Command::perform(
-						async move {
-							match post.download_async().await {
-								Err(_) => HidePost,
-								Ok(bytes) => ShowPost(post, Handle::from_memory(bytes)),
-							}
-						},
-						|m| m,
-					)
-				} else {
-					Command::none()
-				}
-			}
-
-			CopyTags(tags) => {
-				let _ = Notification::new()
-					.summary("Tags copied")
-					.appname("Philia")
-					.icon("copy")
-					.show();
-
-				iced::clipboard::write(tags)
-			}
+			Message::SearchMessage(message) => message.handle(self),
+			Message::DownloadMessage(message) => message.handle(self),
+			Message::SettingsMessage(message) => message.handle(self),
+			Message::TagSelectorMessage(message) => message.handle(self),
 		}
 	}
 
-	fn view(&self) -> Element<'_, Self::Message> {
-		let search = tob_bar(&self.search_parameters, &self.search_progress, &self.download_progress);
-		let images = post_image_list(self.posts.values(), 6);
+	fn view(&self) -> Element {
+		let post_list: Element = post_list(self).into();
+		let tag_selector: Element = tag_selector(self).into();
 
-		let preview = post_preview(&self.show);
-		let view: Element<'_, Message> = match preview {
-			None => images.into(),
-			Some(preview) => Row::with_children(vec![images.into(), preview]).into(),
-		};
-
-		column![search, view].into()
+		let content: Element = Split::new(post_list, tag_selector, Some(self.split), Axis::Horizontal, |value| {
+			Message::SplitChanged(value)
+		}).min_size_first(300).min_size_second(150).into();
+		
+		Modal::new(self.settings.show, content, || {
+			Card::new(
+				Text::new("Settings"),
+				settings(&self.settings)
+			)
+				.on_close(SettingsMessage::SettingsClosed.into())
+				.max_width(512)
+				.style(CardStyle).into()
+		})
+			.backdrop(SettingsMessage::SettingsClosed.into())
+			.on_esc(SettingsMessage::SettingsClosed.into())
+			.style(ModalStyle).into()
 	}
 }

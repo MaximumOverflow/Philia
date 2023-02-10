@@ -7,13 +7,17 @@ edition = "2021"
 
 [dependencies]
 image = "0.24.5"
+async-std = "1.12.0"
 reqwest = "0.11.13"
 notify-rust = "4.6.0"
+serde_json = "1.0.93"
 iced_native = "0.8.0"
 native-dialog = "0.6.3"
 philia = { path = "../philia" }
 strum = { version = "0.24", features = ["derive"] }
+serde = { version = "1.0.152", features = ["derive"] }
 iced = { version = "0.7.0", features = ["image", "tokio"] }
+iced_aw = {version = "0.3.0", features = ["number_input", "split", "modal", "card"]}
 
 [profile.dev.package."*"]
 opt-level = 3
