@@ -1,7 +1,8 @@
 use crate::settings::{Settings, SettingsMessage};
+use crate::style::{CardStyle, TogglerStyle};
 use iced::widget::{Toggler, column};
 use crate::application::Element;
-use crate::style::TogglerStyle;
+use iced_aw::Card;
 
 pub fn settings(context: &Settings) -> Element {
 	let save_tags: Element = Toggler::new(Some("Save tags".into()), context.save_tags, |value| {
@@ -17,5 +18,9 @@ pub fn settings(context: &Settings) -> Element {
 		.style(TogglerStyle)
 		.into();
 
-	column![save_tags, apply_letterboxing].into()
+	Card::new("Settings", column![save_tags, apply_letterboxing])
+		.on_close(SettingsMessage::SettingsClosed.into())
+		.max_width(512)
+		.style(CardStyle)
+		.into()
 }

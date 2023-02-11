@@ -43,12 +43,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 			.center_y()
 			.into(),
 
-		TagSelectorContext::ShowTagSelector {
-			search,
-			search_timestamp,
-			shown_tags,
-			..
-		} => {
+		TagSelectorContext::ShowTagSelector { search, shown_tags, .. } => {
 			let search_bar: Element =
 				TextInput::new("Search tags", search, |search| TagSelectorMessage::SearchChanged(search).into())
 					.style(TextInputStyle)

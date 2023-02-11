@@ -1,14 +1,15 @@
-use std::iter::{repeat, repeat_with};
-use std::ops::Deref;
-use iced::{Alignment, Length, Padding};
-use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image};
-use iced_aw::NumberInput;
-use strum::IntoEnumIterator;
-use crate::application::{Element, Message, Philia, Source};
-use crate::download::{DownloadContext, DownloadMessage};
-use crate::search::{SearchMessage, SearchStatus, Sorting};
-use crate::settings::SettingsMessage;
 use crate::style::{ButtonStyle, NumberInputStyle, PickListStyle, ScrollableStyle, TextStyle};
+use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image};
+use crate::application::{Element, Message, Philia, Source};
+use crate::search::{SearchMessage, SearchStatus, Sorting};
+use crate::download::{DownloadContext, DownloadMessage};
+use iced::{Alignment, Length, Padding};
+use crate::settings::SettingsMessage;
+use std::iter::{repeat, repeat_with};
+use strum::IntoEnumIterator;
+use iced_aw::NumberInput;
+use std::ops::Deref;
+use crate::preview::PostPreviewMessage;
 
 pub fn post_list(context: &Philia) -> Element {
 	let page: Element = NumberInput::new(context.search.page, usize::MAX, |value| {
@@ -103,10 +104,17 @@ pub fn post_list(context: &Philia) -> Element {
 		let mut columns: Vec<_> = repeat_with(Vec::new).take(COLUMNS).collect();
 
 		let posts = context.search.results.deref();
-		for post in posts.iter().filter(|post| post.preview.is_some()) {
+		for (i, post) in posts.iter().enumerate().filter(|(_, post)| post.preview.is_some()) {
 			let smallest = column_sizes.iter().min().unwrap();
 			let smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
-			columns[smallest].push(Image::new(post.preview.clone().unwrap()).into());
+
+			let image = Image::new(post.preview.clone().unwrap());
+			let button = Button::new(image)
+				.on_press(PostPreviewMessage::PostPreviewOpened(i).into())
+				// .style(ButtonStyle::Transparent)
+				.into();
+
+			columns[smallest].push(button);
 			column_sizes[smallest] += post.size.1;
 		}
 

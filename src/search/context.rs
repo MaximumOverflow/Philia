@@ -26,7 +26,7 @@ impl Default for SearchContext {
 	fn default() -> Self {
 		Self {
 			page: 1,
-			per_page: 75,
+			per_page: 16,
 			results: Arc::new(vec![]),
 			sorting: Default::default(),
 			status: Default::default(),

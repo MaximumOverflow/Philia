@@ -189,5 +189,5 @@ impl TagSelectorMessage {
 }
 
 fn get_default_tags(available: &Vec<String>, vec: &mut Vec<String>) {
-	vec.extend(available.iter().cloned().take(50))
+	vec.extend(available.iter().take(50).cloned())
 }

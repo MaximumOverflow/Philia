@@ -5,6 +5,7 @@ extern crate core;
 mod tags;
 mod style;
 mod search;
+mod preview;
 mod download;
 mod settings;
 mod application;
@@ -23,5 +24,6 @@ fn main() {
 	let mut window_settings = WindowSettings::with_flags(settings);
 	window_settings.window.icon = Some(Icon::from_file_data(ICON_DATA, None).unwrap());
 	window_settings.window.min_size = Some((1280, 720));
+	window_settings.antialiasing = true;
 	Philia::run(window_settings).unwrap()
 }

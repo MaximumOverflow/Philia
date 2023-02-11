@@ -69,10 +69,12 @@ impl text_input::StyleSheet for Theme {
 	}
 }
 
+#[allow(unused)]
 #[derive(Default, Copy, Clone)]
 pub enum ButtonStyle {
 	#[default]
 	Default,
+	IgnoreTag,
 	IncludeTag,
 	ExcludeTag,
 	Transparent,
@@ -94,6 +96,13 @@ impl button::StyleSheet for Theme {
 				border_radius: 20.0,
 				text_color: color!(0xFFFFFF),
 				background: color!(0x2D882D).into(),
+				shadow_offset: Vector::new(2.5, 2.5),
+				..Default::default()
+			},
+			ButtonStyle::IgnoreTag => button::Appearance {
+				border_radius: 20.0,
+				text_color: color!(0xFFFFFF),
+				background: color!(0xb88839).into(),
 				shadow_offset: Vector::new(2.5, 2.5),
 				..Default::default()
 			},
@@ -143,6 +152,7 @@ impl button::StyleSheet for Theme {
 	}
 }
 
+#[allow(unused)]
 #[derive(Default, Copy, Clone)]
 pub enum TextStyle {
 	#[default]

@@ -1,12 +1,12 @@
+use crate::settings::{Settings, settings, SettingsMessage};
+use crate::download::{DownloadContext, DownloadMessage};
+use crate::preview::{PostPreviewContext, PostPreviewMessage, preview};
 use iced::{Application, Renderer};
-use iced::widget::Text;
-use iced_aw::{Card, Modal, Split};
+use strum::{Display, EnumIter};
+use iced_aw::{Modal, Split};
 use iced_aw::split::Axis;
 use iced_native::Command;
-use strum::{Display, EnumIter};
-use crate::download::{DownloadContext, DownloadMessage};
 use crate::search::*;
-use crate::settings::{Settings, settings, SettingsMessage};
 use crate::style::*;
 use crate::tags::*;
 
@@ -16,6 +16,7 @@ pub struct Philia {
 	pub settings: Settings,
 	pub search: SearchContext,
 	pub download: DownloadContext,
+	pub preview: PostPreviewContext,
 	pub tag_selector: TagSelectorContext,
 }
 
@@ -27,6 +28,7 @@ pub enum Message {
 	DownloadMessage(DownloadMessage),
 	SettingsMessage(SettingsMessage),
 	TagSelectorMessage(TagSelectorMessage),
+	PostPreviewMessage(PostPreviewMessage),
 }
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, EnumIter, Display)]
@@ -51,6 +53,7 @@ impl Application for Philia {
 			source: Default::default(),
 			search: Default::default(),
 			download: Default::default(),
+			preview: PostPreviewContext::None,
 			tag_selector: TagSelectorContext::new_or_cached(Default::default()),
 		};
 
@@ -78,6 +81,7 @@ impl Application for Philia {
 			Message::DownloadMessage(message) => message.handle(self),
 			Message::SettingsMessage(message) => message.handle(self),
 			Message::TagSelectorMessage(message) => message.handle(self),
+			Message::PostPreviewMessage(message) => message.handle(self),
 		}
 	}
 
@@ -92,12 +96,18 @@ impl Application for Philia {
 		.min_size_second(150)
 		.into();
 
-		Modal::new(self.settings.show, content, || {
-			Card::new(Text::new("Settings"), settings(&self.settings))
-				.on_close(SettingsMessage::SettingsClosed.into())
-				.max_width(512)
-				.style(CardStyle)
-				.into()
+		let show_modal = self.settings.show
+			|| match &self.preview {
+				PostPreviewContext::None => false,
+				PostPreviewContext::Some { .. } => true,
+			};
+
+		Modal::new(show_modal, content, || match &self.preview {
+			PostPreviewContext::None => settings(&self.settings),
+			PostPreviewContext::Some { info, image, .. } => match image {
+				Ok(high_res) => preview(&self.search, info, high_res.clone()),
+				Err(low_res) => preview(&self.search, info, low_res.clone()),
+			},
 		})
 		.backdrop(SettingsMessage::SettingsClosed.into())
 		.on_esc(SettingsMessage::SettingsClosed.into())
