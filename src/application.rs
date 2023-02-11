@@ -1,4 +1,4 @@
-use crate::preview::{PostPreviewContext, PostPreviewMessage, preview};
+use crate::post_viewer::{PostViewerContext, PostViewerMessage, post_viewer};
 use crate::settings::{Settings, settings, SettingsMessage};
 use crate::download::{DownloadContext, DownloadMessage};
 use iced::{Application, Renderer};
@@ -16,7 +16,7 @@ pub struct Philia {
 	pub settings: Settings,
 	pub search: SearchContext,
 	pub download: DownloadContext,
-	pub preview: PostPreviewContext,
+	pub preview: PostViewerContext,
 	pub tag_selector: TagSelectorContext,
 }
 
@@ -28,7 +28,7 @@ pub enum Message {
 	DownloadMessage(DownloadMessage),
 	SettingsMessage(SettingsMessage),
 	TagSelectorMessage(TagSelectorMessage),
-	PostPreviewMessage(PostPreviewMessage),
+	PostPreviewMessage(PostViewerMessage),
 }
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, EnumIter, Display)]
@@ -53,7 +53,7 @@ impl Application for Philia {
 			source: Default::default(),
 			search: Default::default(),
 			download: Default::default(),
-			preview: PostPreviewContext::None,
+			preview: PostViewerContext::None,
 			tag_selector: TagSelectorContext::new_or_cached(Default::default()),
 		};
 
@@ -98,16 +98,13 @@ impl Application for Philia {
 
 		let show_modal = self.settings.show
 			|| match &self.preview {
-				PostPreviewContext::None => false,
-				PostPreviewContext::Some { .. } => true,
+				PostViewerContext::None => false,
+				PostViewerContext::Some { .. } => true,
 			};
 
 		Modal::new(show_modal, content, || match &self.preview {
-			PostPreviewContext::None => settings(&self.settings),
-			PostPreviewContext::Some { info, image, .. } => match image {
-				Ok(high_res) => preview(&self.search, info, high_res.clone()),
-				Err(low_res) => preview(&self.search, info, low_res.clone()),
-			},
+			PostViewerContext::None => settings(&self.settings),
+			PostViewerContext::Some { info, image, .. } => post_viewer(&self.search, info, image.clone()),
 		})
 		.backdrop(SettingsMessage::SettingsClosed.into())
 		.on_esc(SettingsMessage::SettingsClosed.into())

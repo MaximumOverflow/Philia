@@ -21,7 +21,7 @@ impl TagSelectorContext {
 		let cache_patch = format!("cache/{:?}_tags.json", source);
 		match std::fs::read_to_string(cache_patch) {
 			Err(_) => Self::New,
-			Ok(cache) => match serde_json::from_str(&cache) {
+			Ok(cache) => match serde_json::from_str::<Vec<String>>(&cache) {
 				Err(_) => Self::New,
 				Ok(cache) => {
 					let mut shown_tags = vec![];
@@ -188,6 +188,6 @@ impl TagSelectorMessage {
 	}
 }
 
-fn get_default_tags(available: &Vec<String>, vec: &mut Vec<String>) {
+fn get_default_tags(available: &[String], vec: &mut Vec<String>) {
 	vec.extend(available.iter().take(50).cloned())
 }

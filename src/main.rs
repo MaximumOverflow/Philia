@@ -5,7 +5,7 @@ extern crate core;
 mod tags;
 mod style;
 mod search;
-mod preview;
+mod post_viewer;
 mod download;
 mod settings;
 mod application;

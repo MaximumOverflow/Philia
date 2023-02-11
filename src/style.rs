@@ -118,19 +118,15 @@ impl button::StyleSheet for Theme {
 				border_color: color!(0, 0, 0, 0.0),
 				..Default::default()
 			},
-			
-			ButtonStyle::Cancellable => {
-				self.active(&ButtonStyle::Default)
-			}
+
+			ButtonStyle::Cancellable => self.active(&ButtonStyle::Default),
 		}
 	}
 
 	fn hovered(&self, style: &Self::Style) -> button::Appearance {
 		match style {
-			ButtonStyle::Cancellable => {
-				self.active(&ButtonStyle::ExcludeTag)
-			},
-			
+			ButtonStyle::Cancellable => self.active(&ButtonStyle::ExcludeTag),
+
 			_ => {
 				let mut appearance = self.active(style);
 				if let Some(Background::Color(color)) = &mut appearance.background {

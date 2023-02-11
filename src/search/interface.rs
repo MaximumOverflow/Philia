@@ -1,17 +1,17 @@
 use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip, Container};
+use crate::search::{PostPreview, SearchMessage, SearchStatus, Sorting};
 use crate::application::{Element, Message, Philia, Source};
-use crate::search::{SearchMessage, SearchStatus, Sorting};
 use crate::download::{DownloadContext, DownloadMessage};
 use iced_native::widget::tooltip::Position;
-use crate::preview::PostPreviewMessage;
+use crate::post_viewer::PostViewerMessage;
 use iced::{Alignment, Length, Padding};
+use iced_native::alignment::Horizontal;
 use crate::settings::SettingsMessage;
 use std::iter::{repeat, repeat_with};
 use crate::style::ButtonStyle;
 use strum::IntoEnumIterator;
 use iced_aw::NumberInput;
 use std::ops::Deref;
-use iced_native::alignment::{Horizontal, Vertical};
 
 pub fn post_list(context: &Philia) -> Element {
 	let page: Element = NumberInput::new(context.search.page, usize::MAX, |value| {
@@ -31,8 +31,7 @@ pub fn post_list(context: &Philia) -> Element {
 			.on_press(SearchMessage::SearchRequested.into())
 			.into(),
 
-		SearchStatus::Searching => Button::new(Text::new("Searching..."))
-			.into(),
+		SearchStatus::Searching => Button::new(Text::new("Searching...")).into(),
 
 		SearchStatus::LoadingPosts { loaded, total } => {
 			let text = format!("Loading posts... {} / {}", loaded, total);
@@ -40,9 +39,8 @@ pub fn post_list(context: &Philia) -> Element {
 				.on_press(SearchMessage::SearchCanceled.into())
 				.style(ButtonStyle::Cancellable)
 				.into();
-			
-			Tooltip::new(button, "Cancel preview loading", Position::Top)
-				.into()
+
+			Tooltip::new(button, "Cancel post_viewer loading", Position::Top).into()
 		}
 	};
 
@@ -63,9 +61,8 @@ pub fn post_list(context: &Philia) -> Element {
 				.on_press(DownloadMessage::DownloadCanceled.into())
 				.style(ButtonStyle::Cancellable)
 				.into();
-			
-			Tooltip::new(button, "Cancel download", Position::Top)
-				.into()
+
+			Tooltip::new(button, "Cancel download", Position::Top).into()
 		}
 
 		_ => Button::new(Text::new("Download all")).into(),
@@ -73,12 +70,14 @@ pub fn post_list(context: &Philia) -> Element {
 
 	let source: Element = PickList::new(Source::iter().collect::<Vec<_>>(), Some(context.source), |source| {
 		Message::SourceChanged(source)
-	}).into();
+	})
+	.into();
 
 	let sorting: Element =
 		PickList::new(Sorting::iter().collect::<Vec<_>>(), Some(context.search.sorting), |sorting| {
 			SearchMessage::SortingChanged(sorting).into()
-		}).into();
+		})
+		.into();
 
 	let search_bar: Element = row![
 		Into::<Element>::into(Text::new("Page: ")),
@@ -102,46 +101,51 @@ pub fn post_list(context: &Philia) -> Element {
 		let mut columns: Vec<_> = repeat_with(Vec::new).take(COLUMNS).collect();
 
 		let posts = context.search.results.deref();
-		// for (i, post) in posts.iter().enumerate().filter(|(_, post)| post.preview.is_some()) {
-		// 	let smallest = column_sizes.iter().min().unwrap();
-		// 	let smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
-		// 
-		// 	let image = Image::new(post.preview.clone().unwrap());
-		// 	let button = Button::new(image)
-		// 		.on_press(PostPreviewMessage::PostPreviewOpened(i).into())
-		// 		.style(ButtonStyle::Transparent)
-		// 		.into();
-		// 
-		// 	columns[smallest].push(button);
-		// 	column_sizes[smallest] += post.size.1;
-		// }
-
 		for (i, post) in posts.iter().enumerate() {
 			let smallest = column_sizes.iter().min().unwrap();
-			let mut smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
+			let smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
 
 			let preview: Element = match post.preview.clone() {
-				Some(handle) => Image::new(handle).into(),
-				None => {
-					smallest = i % columns.len();
-					let text = Text::new(format!("Loading post\n{}", post.info.id))
-						.horizontal_alignment(Horizontal::Center);
-					
+				PostPreview::Loaded(handle) => {
+					column_sizes[smallest] += post.size.1;
+					Image::new(handle).into()
+				}
+
+				PostPreview::Pending => {
+					column_sizes[smallest] += 420;
+
+					let text =
+						Text::new(format!("Loading post\n{}", post.info.id)).horizontal_alignment(Horizontal::Center);
+
 					Container::new(text)
 						.height(Length::Units(420))
 						.width(Length::Units(512))
-						.center_x().center_y()
+						.center_x()
+						.center_y()
 						.into()
-				},
+				}
+
+				PostPreview::Failed => {
+					column_sizes[smallest] += 420;
+
+					let text = Text::new(format!("Could not load post\n{}", post.info.id))
+						.horizontal_alignment(Horizontal::Center);
+
+					Container::new(text)
+						.height(Length::Units(420))
+						.width(Length::Units(512))
+						.center_x()
+						.center_y()
+						.into()
+				}
 			};
-			
+
 			let button = Button::new(preview)
-				.on_press(PostPreviewMessage::PostPreviewOpened(i).into())
+				.on_press(PostViewerMessage::Opened(i).into())
 				.style(ButtonStyle::Transparent)
 				.into();
 
 			columns[smallest].push(button);
-			column_sizes[smallest] += post.size.1;
 		}
 
 		Row::with_children(

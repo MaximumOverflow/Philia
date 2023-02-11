@@ -1,19 +1,35 @@
-use iced::widget::{Image, Text, Scrollable, Column, Button, Row};
-use crate::preview::PostPreviewMessage;
+use iced::widget::{Image, Text, Scrollable, Column, Button, Row, Container};
+use crate::post_viewer::{PostImage, PostViewerMessage};
 use iced::{Alignment, Length, Padding};
 use crate::tags::TagSelectorMessage;
-use philia::prelude::GenericPost;
 use crate::search::SearchContext;
+use philia::prelude::GenericPost;
 use crate::application::Element;
-use iced_native::image::Handle;
 use crate::style::ButtonStyle;
 use iced_native::row;
 use iced_aw::Card;
 
-pub fn preview(search: &SearchContext, info: &GenericPost, handle: Handle) -> Element<'static> {
-	let image = Image::new(handle).width(Length::FillPortion(7));
+pub fn post_viewer(search: &SearchContext, info: &GenericPost, image: PostImage) -> Element<'static> {
+	let image: Element = match image {
+		PostImage::Pending => Container::new(Text::new("Loading image..."))
+			.width(Length::Fill)
+			.height(Length::Fill)
+			.center_x()
+			.center_y()
+			.into(),
 
-	let image: Element = Scrollable::new(image).into();
+		PostImage::Missing => Container::new(Text::new("Could not load image."))
+			.width(Length::Fill)
+			.height(Length::Fill)
+			.center_x()
+			.center_y()
+			.into(),
+
+		PostImage::Loaded(handle) | PostImage::PreviewOnly(handle) => {
+			let image = Image::new(handle).width(Length::Fill);
+			Scrollable::new(image).into()
+		}
+	};
 
 	let mut tags = vec![];
 	for chunk in info.tags.chunks(3) {
@@ -48,15 +64,14 @@ pub fn preview(search: &SearchContext, info: &GenericPost, handle: Handle) -> El
 	let info: Element = Scrollable::new(
 		Column::with_children(tags)
 			.align_items(Alignment::Center)
-			.width(Length::FillPortion(3))
+			.width(Length::Shrink)
 			.spacing(8),
 	)
 	.into();
 
 	let content = row![image, info].align_items(Alignment::Center).spacing(16);
 
-	let card = Card::new(Text::new("Post preview"), content)
-		.on_close(PostPreviewMessage::PostPreviewClosed.into());
+	let card = Card::new(Text::new("Post post_viewer"), content).on_close(PostViewerMessage::Closed.into());
 
 	Column::new().push(card).padding(Padding::new(100)).into()
 }

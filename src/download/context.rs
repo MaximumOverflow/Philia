@@ -15,7 +15,7 @@ pub enum DownloadContext {
 	Downloading {
 		total: usize,
 		downloaded: usize,
-		timestamp: Arc<Mutex<SystemTime>>
+		timestamp: Arc<Mutex<SystemTime>>,
 	},
 }
 
@@ -41,17 +41,17 @@ impl DownloadMessage {
 					*timestamp.lock().unwrap() = SystemTime::now();
 					context.download = DownloadContext::Complete;
 				}
-				
+
 				Command::none()
 			}
-			
+
 			DownloadMessage::DownloadRequested(posts) => {
 				let path = match FileDialog::new().show_open_single_dir() {
 					Ok(Some(path)) => path,
 					Err(err) => panic!("{}", err),
 					_ => return Command::none(),
 				};
-				
+
 				let initial_timestamp = SystemTime::now();
 				let timestamp = Arc::new(Mutex::new(initial_timestamp));
 
@@ -90,14 +90,14 @@ impl DownloadMessage {
 										println!("Download of post {} canceled. Aborting...", post.info.id);
 										return DownloadMessage::ImageDownloaded(false).into();
 									}
-									
+
 									match post.info.download_async().await {
 										Ok(mut bytes) => {
 											if *current_timestamp.lock().unwrap() != initial_timestamp {
 												println!("Download of post {} canceled. Aborting...", post.info.id);
 												return DownloadMessage::ImageDownloaded(false).into();
 											}
-											
+
 											if add_letterboxing {
 												apply_letterboxing(&mut bytes);
 											}
@@ -163,7 +163,7 @@ impl DownloadMessage {
 						context.download = DownloadContext::Complete;
 					}
 				}
-				
+
 				Command::none()
 			}
 		}

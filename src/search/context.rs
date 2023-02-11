@@ -53,7 +53,14 @@ pub enum SearchStatus {
 pub struct SearchResult {
 	pub size: (u32, u32),
 	pub info: GenericPost,
-	pub preview: Option<Handle>,
+	pub preview: PostPreview,
+}
+
+#[derive(Debug, Clone)]
+pub enum PostPreview {
+	Failed,
+	Pending,
+	Loaded(Handle),
 }
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, EnumIter)]
@@ -84,7 +91,7 @@ impl Sorting {
 				Sorting::DateAsc => "order:id",
 				Sorting::Score => "order:score",
 				Sorting::ScoreAsc => "order:score_asc",
-			}, 
+			},
 			// Source::Rule34 => match self {
 			// 	Sorting::Date => "",
 			// 	Sorting::DateAsc => "sort:id",
@@ -129,7 +136,7 @@ impl SearchMessage {
 				context.search.sorting = value;
 				Command::none()
 			}
-			
+
 			SearchMessage::SearchCanceled => {
 				println!("Search canceled");
 				context.search.status = SearchStatus::Complete;
@@ -143,7 +150,7 @@ impl SearchMessage {
 					.map(|info| SearchResult {
 						size: (0, 0),
 						info: info.clone(),
-						preview: None,
+						preview: PostPreview::Pending,
 					})
 					.collect();
 
@@ -153,7 +160,7 @@ impl SearchMessage {
 					loaded: 0,
 					total: posts.len(),
 				};
-				
+
 				let current_timestamp = context.search.timestamp.clone();
 				let initial_timestamp = *current_timestamp.lock().unwrap();
 
@@ -161,18 +168,18 @@ impl SearchMessage {
 					const RETRY_COUNT: usize = 8;
 
 					fn handle_failed(i: usize, post: &GenericPost) -> Message {
-						println!("Failed downloading preview for post {}. Aborting...", post.id);
+						println!("Failed downloading post_viewer for post {}. Aborting...", post.id);
 						SearchMessage::PushImage(i, (0, 0), None).into()
 					}
 
 					fn handle_canceled(i: usize, post: &GenericPost) -> Message {
-						println!("Download of preview for post {} canceled. Aborting...", post.id);
+						println!("Download of post_viewer for post {} canceled. Aborting...", post.id);
 						SearchMessage::PushImage(i, (0, 0), None).into()
 					}
 
 					async fn handle_retry(post: &GenericPost, retry: &mut usize) {
 						println!(
-							"Failed downloading preview for post {}. Retry {} of {}",
+							"Failed downloading post_viewer for post {}. Retry {} of {}",
 							post.id, retry, RETRY_COUNT
 						);
 
@@ -181,7 +188,7 @@ impl SearchMessage {
 					}
 
 					let current_timestamp = current_timestamp.clone();
-					
+
 					Command::perform(
 						async move {
 							let mut retry = 0;
@@ -190,7 +197,7 @@ impl SearchMessage {
 								if *current_timestamp.lock().unwrap() != initial_timestamp {
 									break handle_canceled(i, &post);
 								}
-								
+
 								match reqwest::get(&post.resource_url).await {
 									Ok(result) => match result.bytes().await {
 										Ok(bytes) => {
@@ -298,7 +305,10 @@ impl SearchMessage {
 				let results = Arc::get_mut(&mut context.search.results).unwrap();
 				if let Some(result) = results.get_mut(i) {
 					result.size = size;
-					result.preview = handle
+					result.preview = match handle {
+						None => PostPreview::Failed,
+						Some(handle) => PostPreview::Loaded(handle),
+					}
 				}
 
 				Command::none()
