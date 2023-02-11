@@ -1,25 +1,27 @@
-use std::io::Cursor;
-use std::sync::Arc;
-use std::time::Duration;
-use iced_native::Command;
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
-use native_dialog::FileDialog;
-use crate::application::{Message, Philia};
-use crate::search::SearchResult;
 use philia::prelude::{Post, DownloadAsync};
+use crate::application::{Message, Philia};
+use std::time::{Duration, SystemTime};
+use crate::search::SearchResult;
+use native_dialog::FileDialog;
+use std::sync::{Arc, Mutex};
+use iced_native::Command;
+use std::io::Cursor;
 
-#[derive(Default, Eq, PartialEq)]
+#[derive(Default)]
 pub enum DownloadContext {
 	#[default]
 	Complete,
 	Downloading {
 		total: usize,
 		downloaded: usize,
+		timestamp: Arc<Mutex<SystemTime>>
 	},
 }
 
 #[derive(Debug, Clone)]
 pub enum DownloadMessage {
+	DownloadCanceled,
 	ImageDownloaded(bool),
 	DownloadRequested(Arc<Vec<SearchResult>>),
 }
@@ -33,16 +35,30 @@ impl From<DownloadMessage> for Message {
 impl DownloadMessage {
 	pub fn handle(self, context: &mut Philia) -> Command<Message> {
 		match self {
+			DownloadMessage::DownloadCanceled => {
+				if let DownloadContext::Downloading { timestamp, .. } = &mut context.download {
+					println!("Download canceled");
+					*timestamp.lock().unwrap() = SystemTime::now();
+					context.download = DownloadContext::Complete;
+				}
+				
+				Command::none()
+			}
+			
 			DownloadMessage::DownloadRequested(posts) => {
 				let path = match FileDialog::new().show_open_single_dir() {
 					Ok(Some(path)) => path,
 					Err(err) => panic!("{}", err),
 					_ => return Command::none(),
 				};
+				
+				let initial_timestamp = SystemTime::now();
+				let timestamp = Arc::new(Mutex::new(initial_timestamp));
 
 				context.download = DownloadContext::Downloading {
 					downloaded: 0,
 					total: posts.len(),
+					timestamp: timestamp.clone(),
 				};
 
 				if !path.exists() {
@@ -54,6 +70,7 @@ impl DownloadMessage {
 				Command::batch(posts.iter().map(|post| {
 					let dir = path.clone();
 					let post = post.clone();
+					let current_timestamp = timestamp.clone();
 					let save_tags = context.settings.save_tags;
 					let add_letterboxing = context.settings.apply_letterboxing;
 
@@ -68,8 +85,19 @@ impl DownloadMessage {
 
 								loop {
 									async_std::task::sleep(Duration::from_millis(100)).await;
+
+									if *current_timestamp.lock().unwrap() != initial_timestamp {
+										println!("Download of post {} canceled. Aborting...", post.info.id);
+										return DownloadMessage::ImageDownloaded(false).into();
+									}
+									
 									match post.info.download_async().await {
 										Ok(mut bytes) => {
+											if *current_timestamp.lock().unwrap() != initial_timestamp {
+												println!("Download of post {} canceled. Aborting...", post.info.id);
+												return DownloadMessage::ImageDownloaded(false).into();
+											}
+											
 											if add_letterboxing {
 												apply_letterboxing(&mut bytes);
 											}
@@ -85,7 +113,7 @@ impl DownloadMessage {
 
 										Err(_) => {
 											println!(
-												"Failed downloading post {}. Retry {} of {}.",
+												"Failed downloading post {}. Retry {} of {}",
 												post.info.id, retry, RETRY_COUNT,
 											);
 											retry += 1;
@@ -123,7 +151,7 @@ impl DownloadMessage {
 			}
 
 			DownloadMessage::ImageDownloaded(success) => {
-				if let DownloadContext::Downloading { total, downloaded } = &mut context.download {
+				if let DownloadContext::Downloading { total, downloaded, .. } = &mut context.download {
 					if success {
 						*downloaded += 1;
 					} else {
@@ -131,10 +159,11 @@ impl DownloadMessage {
 					}
 
 					if *downloaded == *total {
-						println!("Downloaded {} images.", downloaded);
+						println!("Downloaded {} images", downloaded);
 						context.download = DownloadContext::Complete;
 					}
 				}
+				
 				Command::none()
 			}
 		}

@@ -1,4 +1,4 @@
-use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip};
+use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip, Container};
 use crate::application::{Element, Message, Philia, Source};
 use crate::search::{SearchMessage, SearchStatus, Sorting};
 use crate::download::{DownloadContext, DownloadMessage};
@@ -11,6 +11,7 @@ use crate::style::ButtonStyle;
 use strum::IntoEnumIterator;
 use iced_aw::NumberInput;
 use std::ops::Deref;
+use iced_native::alignment::{Horizontal, Vertical};
 
 pub fn post_list(context: &Philia) -> Element {
 	let page: Element = NumberInput::new(context.search.page, usize::MAX, |value| {
@@ -40,7 +41,7 @@ pub fn post_list(context: &Philia) -> Element {
 				.style(ButtonStyle::Cancellable)
 				.into();
 			
-			Tooltip::new(button, "Cancel search", Position::Bottom)
+			Tooltip::new(button, "Cancel preview loading", Position::Top)
 				.into()
 		}
 	};
@@ -56,9 +57,15 @@ pub fn post_list(context: &Philia) -> Element {
 				.into()
 		}
 
-		DownloadContext::Downloading { total, downloaded } => {
+		DownloadContext::Downloading { total, downloaded, .. } => {
 			let text = format!("Downloading... {} / {}", downloaded, total);
-			Button::new(Text::new(text)).into()
+			let button: Element = Button::new(Text::new(text))
+				.on_press(DownloadMessage::DownloadCanceled.into())
+				.style(ButtonStyle::Cancellable)
+				.into();
+			
+			Tooltip::new(button, "Cancel download", Position::Top)
+				.into()
 		}
 
 		_ => Button::new(Text::new("Download all")).into(),
@@ -95,12 +102,40 @@ pub fn post_list(context: &Philia) -> Element {
 		let mut columns: Vec<_> = repeat_with(Vec::new).take(COLUMNS).collect();
 
 		let posts = context.search.results.deref();
-		for (i, post) in posts.iter().enumerate().filter(|(_, post)| post.preview.is_some()) {
-			let smallest = column_sizes.iter().min().unwrap();
-			let smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
+		// for (i, post) in posts.iter().enumerate().filter(|(_, post)| post.preview.is_some()) {
+		// 	let smallest = column_sizes.iter().min().unwrap();
+		// 	let smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
+		// 
+		// 	let image = Image::new(post.preview.clone().unwrap());
+		// 	let button = Button::new(image)
+		// 		.on_press(PostPreviewMessage::PostPreviewOpened(i).into())
+		// 		.style(ButtonStyle::Transparent)
+		// 		.into();
+		// 
+		// 	columns[smallest].push(button);
+		// 	column_sizes[smallest] += post.size.1;
+		// }
 
-			let image = Image::new(post.preview.clone().unwrap());
-			let button = Button::new(image)
+		for (i, post) in posts.iter().enumerate() {
+			let smallest = column_sizes.iter().min().unwrap();
+			let mut smallest = column_sizes.iter().position(|i| *i == *smallest).unwrap();
+
+			let preview: Element = match post.preview.clone() {
+				Some(handle) => Image::new(handle).into(),
+				None => {
+					smallest = i % columns.len();
+					let text = Text::new(format!("Loading post\n{}", post.info.id))
+						.horizontal_alignment(Horizontal::Center);
+					
+					Container::new(text)
+						.height(Length::Units(420))
+						.width(Length::Units(512))
+						.center_x().center_y()
+						.into()
+				},
+			};
+			
+			let button = Button::new(preview)
 				.on_press(PostPreviewMessage::PostPreviewOpened(i).into())
 				.style(ButtonStyle::Transparent)
 				.into();

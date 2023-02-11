@@ -172,7 +172,7 @@ impl SearchMessage {
 
 					async fn handle_retry(post: &GenericPost, retry: &mut usize) {
 						println!(
-							"Failed downloading preview for post {}. Retry {} of {}.",
+							"Failed downloading preview for post {}. Retry {} of {}",
 							post.id, retry, RETRY_COUNT
 						);
 
@@ -290,7 +290,7 @@ impl SearchMessage {
 					}
 
 					if *loaded == *total {
-						println!("Search completed. {} posts loaded.", loaded);
+						println!("Search completed. {} posts loaded", loaded);
 						context.search.status = SearchStatus::Complete;
 					}
 				}
