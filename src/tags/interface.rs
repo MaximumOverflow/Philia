@@ -1,9 +1,9 @@
 use iced::widget::{Button, Container, Text, TextInput, column, Scrollable, Column};
-use crate::style::{ButtonStyle, ScrollableStyle, TextInputStyle, TextStyle};
 use crate::tags::{TagSelectorContext, TagSelectorMessage};
 use crate::application::{Element, Philia};
 use iced::{Alignment, Length, Padding};
 use iced::alignment::Horizontal;
+use crate::style::ButtonStyle;
 use iced_native::widget::Row;
 use iced_native::row;
 
@@ -14,13 +14,11 @@ pub fn tag_selector(context: &Philia) -> Element {
 				"The tag list for this source has not been downloaded yet.\n",
 				"Would you like to download it? This process may take a while."
 			})
-			.style(TextStyle::White)
 			.horizontal_alignment(Horizontal::Center)
 			.into();
 
-			let button: Element = Button::new(Text::new("Download tag list").style(TextStyle::White))
+			let button: Element = Button::new(Text::new("Download tag list"))
 				.on_press(TagSelectorMessage::ReloadRequested.into())
-				.style(ButtonStyle::Default)
 				.into();
 
 			let content: Element = Column::with_children(vec![text, button])
@@ -45,21 +43,19 @@ pub fn tag_selector(context: &Philia) -> Element {
 
 		TagSelectorContext::ShowTagSelector { search, shown_tags, .. } => {
 			let search_bar: Element =
-				TextInput::new("Search tags", search, |search| TagSelectorMessage::SearchChanged(search).into())
-					.style(TextInputStyle)
-					.into();
+				TextInput::new("Search tags", search, |search| TagSelectorMessage::SearchChanged(search).into()).into();
 
 			let search: Element = {
 				let list = shown_tags
 					.iter()
 					.map(|tag| {
 						Row::with_children(vec![
-							Text::new(tag).style(TextStyle::White).into(),
-							Button::new(Text::new("Include").style(TextStyle::White))
+							Text::new(tag).into(),
+							Button::new(Text::new("Include"))
 								.on_press(TagSelectorMessage::TagIncluded(tag.clone()).into())
 								.style(ButtonStyle::IncludeTag)
 								.into(),
-							Button::new(Text::new("Exclude").style(TextStyle::White))
+							Button::new(Text::new("Exclude"))
 								.on_press(TagSelectorMessage::TagExcluded(tag.clone()).into())
 								.style(ButtonStyle::ExcludeTag)
 								.into(),
@@ -72,9 +68,9 @@ pub fn tag_selector(context: &Philia) -> Element {
 
 				let content = Column::with_children(list).width(Length::Fill).spacing(5);
 
-				let scroller: Element = Scrollable::new(content).style(ScrollableStyle).into();
+				let scroller: Element = Scrollable::new(content).into();
 
-				let title: Element = Text::new("Search results:").style(TextStyle::White).into();
+				let title: Element = Text::new("Search results:").into();
 
 				column![title, scroller]
 					.width(Length::FillPortion(6))
@@ -88,7 +84,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 					.include
 					.iter()
 					.map(|tag| {
-						Button::new(Text::new(tag).style(TextStyle::White))
+						Button::new(Text::new(tag))
 							.on_press(TagSelectorMessage::TagIgnored(tag.clone()).into())
 							.style(ButtonStyle::IncludeTag)
 							.into()
@@ -97,9 +93,9 @@ pub fn tag_selector(context: &Philia) -> Element {
 
 				let content = Column::with_children(list).width(Length::Fill).spacing(5);
 
-				let scroller: Element = Scrollable::new(content).style(ScrollableStyle).into();
+				let scroller: Element = Scrollable::new(content).into();
 
-				let title: Element = Text::new("Included:").style(TextStyle::White).into();
+				let title: Element = Text::new("Included:").into();
 
 				column![title, scroller]
 					.width(Length::FillPortion(2))
@@ -113,7 +109,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 					.exclude
 					.iter()
 					.map(|tag| {
-						Button::new(Text::new(tag).style(TextStyle::White))
+						Button::new(Text::new(tag))
 							.on_press(TagSelectorMessage::TagIgnored(tag.clone()).into())
 							.style(ButtonStyle::ExcludeTag)
 							.into()
@@ -122,9 +118,9 @@ pub fn tag_selector(context: &Philia) -> Element {
 
 				let content = Column::with_children(list).width(Length::Fill).spacing(5);
 
-				let scroller: Element = Scrollable::new(content).style(ScrollableStyle).into();
+				let scroller: Element = Scrollable::new(content).into();
 
-				let title: Element = Text::new("Excluded:").style(TextStyle::White).into();
+				let title: Element = Text::new("Excluded:").into();
 
 				column![title, scroller]
 					.width(Length::FillPortion(2))

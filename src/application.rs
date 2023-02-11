@@ -1,6 +1,6 @@
+use crate::preview::{PostPreviewContext, PostPreviewMessage, preview};
 use crate::settings::{Settings, settings, SettingsMessage};
 use crate::download::{DownloadContext, DownloadMessage};
-use crate::preview::{PostPreviewContext, PostPreviewMessage, preview};
 use iced::{Application, Renderer};
 use strum::{Display, EnumIter};
 use iced_aw::{Modal, Split};
@@ -111,7 +111,6 @@ impl Application for Philia {
 		})
 		.backdrop(SettingsMessage::SettingsClosed.into())
 		.on_esc(SettingsMessage::SettingsClosed.into())
-		.style(ModalStyle)
 		.into()
 	}
 }

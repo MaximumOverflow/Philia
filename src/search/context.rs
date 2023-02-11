@@ -1,25 +1,26 @@
 use crate::application::{Message, Philia, Source};
 use philia::prelude::{E621, GenericPost};
+use std::time::{Duration, SystemTime};
 use std::fmt::{Display, Formatter};
 use philia::search::SearchBuilder;
 use image::imageops::FilterType;
 use iced_native::image::Handle;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use iced_native::Command;
-use std::time::Duration;
 use image::ImageFormat;
 use std::io::Cursor;
 use strum::EnumIter;
-use std::sync::Arc;
 
 pub struct SearchContext {
 	pub page: usize,
 	pub per_page: usize,
 	pub sorting: Sorting,
-	pub results: Arc<Vec<SearchResult>>,
 	pub status: SearchStatus,
 	pub include: HashSet<String>,
 	pub exclude: HashSet<String>,
+	pub results: Arc<Vec<SearchResult>>,
+	pub timestamp: Arc<Mutex<SystemTime>>,
 }
 
 impl Default for SearchContext {
@@ -32,6 +33,7 @@ impl Default for SearchContext {
 			status: Default::default(),
 			include: Default::default(),
 			exclude: Default::default(),
+			timestamp: Arc::new(Mutex::new(SystemTime::UNIX_EPOCH)),
 		}
 	}
 }
@@ -82,18 +84,20 @@ impl Sorting {
 				Sorting::DateAsc => "order:id",
 				Sorting::Score => "order:score",
 				Sorting::ScoreAsc => "order:score_asc",
-			}, // Source::Rule34 => match self {
-			   // 	Sorting::Date => "",
-			   // 	Sorting::DateAsc => "sort:id",
-			   // 	Sorting::Score => "sort:score",
-			   // 	Sorting::ScoreAsc => "sort:score_asc",
-			   // }
+			}, 
+			// Source::Rule34 => match self {
+			// 	Sorting::Date => "",
+			// 	Sorting::DateAsc => "sort:id",
+			// 	Sorting::Score => "sort:score",
+			// 	Sorting::ScoreAsc => "sort:score_asc",
+			// }
 		}
 	}
 }
 
 #[derive(Debug, Clone)]
 pub enum SearchMessage {
+	SearchCanceled,
 	SearchRequested,
 	PageChanged(usize),
 	PerPageChanged(usize),
@@ -125,6 +129,13 @@ impl SearchMessage {
 				context.search.sorting = value;
 				Command::none()
 			}
+			
+			SearchMessage::SearchCanceled => {
+				println!("Search canceled");
+				context.search.status = SearchStatus::Complete;
+				*context.search.timestamp.lock().unwrap() = SystemTime::now();
+				Command::none()
+			}
 
 			SearchMessage::SearchReturned(posts) => {
 				let results = posts
@@ -142,12 +153,20 @@ impl SearchMessage {
 					loaded: 0,
 					total: posts.len(),
 				};
+				
+				let current_timestamp = context.search.timestamp.clone();
+				let initial_timestamp = *current_timestamp.lock().unwrap();
 
 				Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 					const RETRY_COUNT: usize = 8;
 
 					fn handle_failed(i: usize, post: &GenericPost) -> Message {
 						println!("Failed downloading preview for post {}. Aborting...", post.id);
+						SearchMessage::PushImage(i, (0, 0), None).into()
+					}
+
+					fn handle_canceled(i: usize, post: &GenericPost) -> Message {
+						println!("Download of preview for post {} canceled. Aborting...", post.id);
 						SearchMessage::PushImage(i, (0, 0), None).into()
 					}
 
@@ -161,11 +180,17 @@ impl SearchMessage {
 						*retry += 1;
 					}
 
+					let current_timestamp = current_timestamp.clone();
+					
 					Command::perform(
 						async move {
 							let mut retry = 0;
 
 							loop {
+								if *current_timestamp.lock().unwrap() != initial_timestamp {
+									break handle_canceled(i, &post);
+								}
+								
 								match reqwest::get(&post.resource_url).await {
 									Ok(result) => match result.bytes().await {
 										Ok(bytes) => {
@@ -187,6 +212,10 @@ impl SearchMessage {
 												)
 												.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
 												.unwrap();
+
+											if *current_timestamp.lock().unwrap() != initial_timestamp {
+												break handle_canceled(i, &post);
+											}
 
 											let handle = Handle::from_memory(bytes);
 											break SearchMessage::PushImage(
@@ -213,8 +242,10 @@ impl SearchMessage {
 
 			SearchMessage::SearchRequested => {
 				let source = context.source;
+				let timestamp = SystemTime::now();
 				context.search.results = Arc::new(vec![]);
 				context.search.status = SearchStatus::Searching;
+				*context.search.timestamp.lock().unwrap() = timestamp;
 
 				let mut search_builder = SearchBuilder::default();
 				search_builder

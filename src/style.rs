@@ -78,6 +78,7 @@ pub enum ButtonStyle {
 	IncludeTag,
 	ExcludeTag,
 	Transparent,
+	Cancellable,
 }
 
 impl button::StyleSheet for Theme {
@@ -117,18 +118,30 @@ impl button::StyleSheet for Theme {
 				border_color: color!(0, 0, 0, 0.0),
 				..Default::default()
 			},
+			
+			ButtonStyle::Cancellable => {
+				self.active(&ButtonStyle::Default)
+			}
 		}
 	}
 
 	fn hovered(&self, style: &Self::Style) -> button::Appearance {
-		let mut appearance = self.active(style);
-		if let Some(Background::Color(color)) = &mut appearance.background {
-			color.r += 0.05;
-			color.g += 0.05;
-			color.b += 0.05;
-		}
+		match style {
+			ButtonStyle::Cancellable => {
+				self.active(&ButtonStyle::ExcludeTag)
+			},
+			
+			_ => {
+				let mut appearance = self.active(style);
+				if let Some(Background::Color(color)) = &mut appearance.background {
+					color.r += 0.05;
+					color.g += 0.05;
+					color.b += 0.05;
+				}
 
-		appearance
+				appearance
+			}
+		}
 	}
 
 	fn pressed(&self, style: &Self::Style) -> button::Appearance {
