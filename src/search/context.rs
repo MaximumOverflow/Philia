@@ -145,6 +145,11 @@ impl SearchMessage {
 			}
 
 			SearchMessage::SearchReturned(posts) => {
+				if posts.is_empty() {
+					context.search.status = SearchStatus::Complete;
+					return Command::none();
+				}
+
 				let results = posts
 					.iter()
 					.map(|info| SearchResult {
