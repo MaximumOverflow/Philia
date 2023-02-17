@@ -52,12 +52,18 @@ pub fn tag_selector(context: &Philia) -> Element {
 				.into()
 		}
 
-		TagSelectorContext::LoadingTagList => Container::new("Downloading tag list...")
-			.width(Length::Fill)
-			.height(Length::Fill)
-			.center_x()
-			.center_y()
-			.into(),
+		TagSelectorContext::LoadingTagList { page, tags } => Container::new(
+			Text::new(format! {
+				"Downloading tag list...\nTotal tags: {}\nPage: {} / 50",
+				tags.len(), page,
+			})
+			.horizontal_alignment(Horizontal::Center),
+		)
+		.width(Length::Fill)
+		.height(Length::Fill)
+		.center_x()
+		.center_y()
+		.into(),
 
 		TagSelectorContext::ShowTagSelector { search, shown_tags, .. } => {
 			let search_bar: Element =

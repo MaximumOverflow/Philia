@@ -7,9 +7,15 @@ use std::sync::Arc;
 
 pub enum TagSelectorContext {
 	New,
-	LoadingTagList,
+
+	LoadingTagList {
+		page: usize,
+		tags: Vec<String>,
+	},
+
 	ShowTagSelector {
 		client: Option<Arc<Client>>,
+
 		search: String,
 		search_timestamp: Option<SystemTime>,
 
@@ -54,11 +60,14 @@ impl TagSelectorContext {
 #[derive(Debug, Clone)]
 pub enum TagSelectorMessage {
 	ReloadRequested,
+	ReloadTick(Vec<String>),
 	ReloadCompleted(Vec<String>),
+
 	TagCreated(String),
 	TagIgnored(String),
 	TagIncluded(String),
 	TagExcluded(String),
+
 	SearchChanged(String),
 	SearchCompleted(SystemTime, Vec<String>),
 }
@@ -77,47 +86,65 @@ impl TagSelectorMessage {
 					return Command::none();
 				};
 
-				context.tag_selector = TagSelectorContext::LoadingTagList;
-				Command::perform(
-					async move {
-						println!("Loading tag list for {:?}...", client.source().name);
-						let mut tags = vec![];
+				println!("Loading tag list for {:?}...", client.source().name);
+				context.tag_selector = TagSelectorContext::LoadingTagList { page: 0, tags: vec![] };
 
-						for page in 1..=50 {
+				TagSelectorMessage::ReloadTick(vec![]).handle(context)
+			}
+
+			TagSelectorMessage::ReloadTick(page_tags) => {
+				let TagSelectorContext::LoadingTagList { page, tags } = &mut context.tag_selector else {
+					return Command::none();
+				};
+
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
+
+				*page += 1;
+				tags.extend(page_tags);
+
+				if *page == 50 {
+					let tags = std::mem::take(tags);
+					TagSelectorMessage::ReloadCompleted(tags).handle(context)
+				} else {
+					let page = *page;
+					Command::perform(
+						async move {
+							let mut tags = vec![];
 							let result = client.tags_async(page, 320).await;
 							match result {
 								Ok(page_tags) => {
-									println! {
-										"({}) Extending tags by {} elements",
-										page, page_tags.len()
-									};
 									tags.extend(page_tags);
 									async_std::task::sleep(Duration::from_millis(600)).await;
 								}
 
-								_ => break,
+								_ => {}
 							}
-						}
 
-						tags.sort_by_key(|tag| usize::MAX - tag.count);
-						let tags = tags.into_iter().map(|tag| tag.name).collect();
-
-						let _ = std::fs::create_dir("cache");
-						let cache_patch = format!("cache/{}_tags.json", client.source().name);
-						let cache_value = serde_json::to_string_pretty(&tags).unwrap();
-						let cache_result = std::fs::write(cache_patch, cache_value);
-						println!("Tag caching result: {:?}", cache_result);
-
-						TagSelectorMessage::ReloadCompleted(tags).into()
-					},
-					|message| message,
-				)
+							tags.sort_by_key(|tag| usize::MAX - tag.count);
+							let tags = tags.into_iter().map(|tag| tag.name).collect();
+							TagSelectorMessage::ReloadTick(tags).into()
+						},
+						|message| message,
+					)
+				}
 			}
 
 			TagSelectorMessage::ReloadCompleted(tags) => {
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
+
 				let mut shown_tags = vec![];
 				get_default_tags(&tags, &mut shown_tags);
 				let tag_set = tags.iter().cloned().collect();
+
+				let _ = std::fs::create_dir("cache");
+				let cache_patch = format!("cache/{}_tags.json", client.source().name);
+				let cache_value = serde_json::to_string_pretty(&tags).unwrap();
+				let _ = std::fs::write(cache_patch, cache_value);
+
 				context.tag_selector = TagSelectorContext::ShowTagSelector {
 					shown_tags,
 					client: context.client.upgrade(),
