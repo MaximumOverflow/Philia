@@ -23,9 +23,9 @@ impl TagSelectorContext {
 	pub fn new_or_cached(client: Option<Arc<Client>>) -> Self {
 		let cache_patch = match &client {
 			None => return Self::New,
-			Some(client) => format!("cache/{}_tags.json", client.source().name)
+			Some(client) => format!("cache/{}_tags.json", client.source().name),
 		};
-		
+
 		match std::fs::read_to_string(cache_patch) {
 			Err(_) => Self::New,
 			Ok(cache) => match serde_json::from_str::<Vec<String>>(&cache) {
@@ -33,7 +33,7 @@ impl TagSelectorContext {
 				Ok(cache) => {
 					let mut shown_tags = vec![];
 					get_default_tags(&cache, &mut shown_tags);
-					
+
 					let tag_set = cache.iter().cloned().collect();
 					let tag_vec = Arc::new(cache);
 
@@ -41,7 +41,9 @@ impl TagSelectorContext {
 						client,
 						search: String::new(),
 						search_timestamp: None,
-						shown_tags, tag_set, tag_vec,
+						shown_tags,
+						tag_set,
+						tag_vec,
 					}
 				}
 			},
@@ -110,7 +112,7 @@ impl TagSelectorMessage {
 					},
 					|message| message,
 				)
-			},
+			}
 
 			TagSelectorMessage::ReloadCompleted(tags) => {
 				let mut shown_tags = vec![];
@@ -121,7 +123,8 @@ impl TagSelectorMessage {
 					client: context.client.upgrade(),
 					search: String::new(),
 					search_timestamp: None,
-					tag_vec: Arc::new(tags), tag_set
+					tag_vec: Arc::new(tags),
+					tag_set,
 				};
 
 				TagSelectorMessage::SearchChanged(String::new()).handle(context)
@@ -179,11 +182,15 @@ impl TagSelectorMessage {
 
 				Command::none()
 			}
-			
+
 			TagSelectorMessage::TagCreated(tag) => {
 				if let TagSelectorContext::ShowTagSelector {
-					tag_set, tag_vec, search, ..
-				} = &mut context.tag_selector {
+					tag_set,
+					tag_vec,
+					search,
+					..
+				} = &mut context.tag_selector
+				{
 					if tag_set.insert(tag.clone()) {
 						let mut vec = (**tag_vec).clone();
 						vec.push(tag);
@@ -191,8 +198,7 @@ impl TagSelectorMessage {
 					}
 
 					TagSelectorMessage::SearchChanged(search.clone()).handle(context)
-				}
-				else {
+				} else {
 					Command::none()
 				}
 			}
@@ -224,7 +230,7 @@ impl Drop for TagSelectorContext {
 			let Some(client) = client else {
 				return;
 			};
-			
+
 			if let Ok(json) = serde_json::to_string_pretty(&**tag_vec) {
 				let cache_patch = format!("cache/{}_tags.json", client.source().name);
 				let _ = std::fs::write(cache_patch, json);

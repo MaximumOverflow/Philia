@@ -57,7 +57,7 @@ impl PostViewerMessage {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
-				
+
 				let timestamp = SystemTime::now();
 				let post = context.search.results[index].clone();
 

@@ -30,10 +30,10 @@ pub fn post_list(context: &Philia) -> Element {
 	let search: Element = match context.search.status {
 		SearchStatus::Complete => match &client {
 			None => Button::new(Text::new("Search")).into(),
-			
+
 			Some(_) => Button::new(Text::new("Search"))
 				.on_press(SearchMessage::SearchRequested.into())
-				.into()
+				.into(),
 		},
 
 		SearchStatus::Searching => Button::new(Text::new("Searching...")).into(),
@@ -54,8 +54,7 @@ pub fn post_list(context: &Philia) -> Element {
 		.into();
 
 	let download: Element = match context.download {
-		DownloadContext::Complete 
-		if context.search.status == SearchStatus::Complete && client.is_some() => {
+		DownloadContext::Complete if context.search.status == SearchStatus::Complete && client.is_some() => {
 			Button::new(Text::new("Download all"))
 				.on_press(DownloadMessage::DownloadRequested(context.search.results.clone()).into())
 				.into()
@@ -75,13 +74,15 @@ pub fn post_list(context: &Philia) -> Element {
 	};
 
 	let source = {
-		let options: Vec<_> = context.clients.iter()
+		let options: Vec<_> = context
+			.clients
+			.iter()
 			.map(|client| client.source().name.clone())
 			.collect();
-		
+
 		let selected = client.as_ref().map(|client| client.source().name.clone());
-		
-		PickList::new(options, selected, |name| Message::SourceChanged(name))
+
+		PickList::new(options, selected, Message::SourceChanged)
 	};
 
 	let sorting: Element =

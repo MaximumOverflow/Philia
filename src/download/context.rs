@@ -49,7 +49,7 @@ impl DownloadMessage {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
-				
+
 				let path = match FileDialog::new().show_open_single_dir() {
 					Ok(Some(path)) => path,
 					Err(err) => panic!("{}", err),
@@ -84,13 +84,13 @@ impl DownloadMessage {
 							let Some(resource_url) = &post.info.resource_url else {
 								return DownloadMessage::ImageDownloaded(false).into();
 							};
-							
+
 							let img = format! {
-								"{}.{}", 
-								post.info.id, 
+								"{}.{}",
+								post.info.id,
 								Path::new(resource_url).extension().unwrap().to_str().unwrap()
 							};
-							
+
 							let img_path = dir.join(img);
 
 							let image_downloaded = if !img_path.exists() {

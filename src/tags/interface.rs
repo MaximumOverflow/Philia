@@ -14,28 +14,28 @@ pub fn tag_selector(context: &Philia) -> Element {
 				None => Text::new("The tag list is not available for this source.")
 					.horizontal_alignment(Horizontal::Center)
 					.into(),
-				
-				Some(client) => {
-					let text: Element = Text::new(
-						match client.source().tag_list.is_some() {
-							true => concat! {
-								"The tag list for this source has not been downloaded yet.\n",
-								"Would you like to download it? This process may take a while."
-							},
-							false => concat! {
-								"The tag list for this source has not been created yet.\n",
-								"Tags for this source cannot be downloaded automatically.\n",
-								"Would you like to create an empty tag list?"
-							}
-						}
-					).horizontal_alignment(Horizontal::Center).into();
 
-					let button: Element = Button::new(Text::new(
-						match client.source().tag_list.is_some() {
-							true => "Download tag list",
-							false => "Create tag list",
-						}
-					)).on_press(TagSelectorMessage::ReloadRequested.into()).into();
+				Some(client) => {
+					let text: Element = Text::new(match client.source().tag_list.is_some() {
+						true => concat! {
+							"The tag list for this source has not been downloaded yet.\n",
+							"Would you like to download it? This process may take a while."
+						},
+						false => concat! {
+							"The tag list for this source has not been created yet.\n",
+							"Tags for this source cannot be downloaded automatically.\n",
+							"Would you like to create an empty tag list?"
+						},
+					})
+					.horizontal_alignment(Horizontal::Center)
+					.into();
+
+					let button: Element = Button::new(Text::new(match client.source().tag_list.is_some() {
+						true => "Download tag list",
+						false => "Create tag list",
+					}))
+					.on_press(TagSelectorMessage::ReloadRequested.into())
+					.into();
 
 					Column::with_children(vec![text, button])
 						.spacing(16)
@@ -83,7 +83,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 						.into()
 					})
 					.collect::<Vec<Element>>();
-				
+
 				if !search.is_empty() && !shown_tags.contains(search) {
 					list.push(
 						Row::with_children(vec![
@@ -92,7 +92,10 @@ pub fn tag_selector(context: &Philia) -> Element {
 								.on_press(TagSelectorMessage::TagCreated(search.clone()).into())
 								.style(ButtonStyle::IgnoreTag)
 								.into(),
-						]).align_items(Alignment::Center).spacing(8).into()
+						])
+						.align_items(Alignment::Center)
+						.spacing(8)
+						.into(),
 					)
 				}
 

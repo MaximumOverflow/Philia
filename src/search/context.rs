@@ -1,18 +1,18 @@
+use philia::prelude::{Order, SearchBuilder};
 use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
+use crate::tags::TagSelectorContext;
 use std::fmt::{Display, Formatter};
-use philia::prelude::{Order, SearchBuilder};
 use image::imageops::FilterType;
 use iced_native::image::Handle;
 use std::collections::HashSet;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
+use philia::prelude::Post;
 use iced_native::Command;
 use image::ImageFormat;
+use std::error::Error;
 use std::io::Cursor;
-use philia::prelude::Post;
 use strum::EnumIter;
-use crate::tags::TagSelectorContext;
 
 pub struct SearchContext {
 	pub page: usize,
@@ -134,18 +134,15 @@ impl SearchMessage {
 				}
 
 				if let TagSelectorContext::ShowTagSelector { tag_vec, tag_set, .. } = &mut context.tag_selector {
-					let tags_to_add: Vec<_> = posts.iter().flat_map(|p| p.tags.iter())
-						.filter_map(|t| match tag_set.contains(t) {
-							true => None,
-							false => Some(t.to_string())
-						}).collect();
-
-					if !tags_to_add.is_empty() {
-						let mut tags = (**tag_vec).clone();
-						tag_set.extend(tags_to_add.clone());
-						tags.extend(tags_to_add);
-						*tag_vec = Arc::new(tags);
+					let mut tags = (**tag_vec).clone();
+					for tag in posts.iter().flat_map(|p| p.tags.iter()) {
+						let tag = tag.to_string();
+						if tag_set.insert(tag.clone()) {
+							tags.push(tag);
+						}
 					}
+
+					*tag_vec = Arc::new(tags)
 				}
 
 				let results = posts
@@ -205,7 +202,7 @@ impl SearchMessage {
 								if *current_timestamp.lock().unwrap() != initial_timestamp {
 									break handle_canceled(i, &post);
 								}
-								
+
 								let Some(url) = &post.resource_url else {
 									break handle_failed(i, &post)
 								};
@@ -263,7 +260,7 @@ impl SearchMessage {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
-				
+
 				let timestamp = SystemTime::now();
 				context.search.results = Arc::new(vec![]);
 				context.search.status = SearchStatus::Searching;
@@ -273,14 +270,14 @@ impl SearchMessage {
 				let per_page = context.search.per_page;
 				let include = context.search.include.clone();
 				let exclude = context.search.exclude.clone();
-				
+
 				let order = match context.search.sorting {
 					Sorting::Date => Order::Newest,
 					Sorting::DateAsc => Order::Oldest,
 					Sorting::Score => Order::MostLiked,
 					Sorting::ScoreAsc => Order::LeastLiked,
 				};
-				
+
 				Command::perform(
 					async move {
 						println!("Staring search...");
@@ -293,7 +290,6 @@ impl SearchMessage {
 							.order(order)
 							.limit(per_page)
 							.page(page);
-
 
 						let search = search_builder.search_async().await;
 

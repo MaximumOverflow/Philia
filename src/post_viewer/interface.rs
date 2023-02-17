@@ -31,37 +31,42 @@ pub fn post_viewer(search: &SearchContext, info: &Post, image: PostImage) -> Ele
 			Scrollable::new(image).into()
 		}
 	};
-	
-	let tag_buttons = info.tags.iter().map(|tag| {
-		if search.exclude.contains(tag) {
-			Button::new(Text::new(tag.to_string()))
-				.style(ButtonStyle::ExcludeTag)
-				.on_press(TagSelectorMessage::TagIgnored(tag.to_string()).into())
-				.into()
-		} else if search.include.contains(tag) {
-			Button::new(Text::new(tag.to_string()))
-				.style(ButtonStyle::IncludeTag)
-				.on_press(TagSelectorMessage::TagExcluded(tag.to_string()).into())
-				.into()
-		} else {
-			Button::new(Text::new(tag.to_string()))
-				.style(ButtonStyle::IgnoreTag)
-				.on_press(TagSelectorMessage::TagIncluded(tag.to_string()).into())
-				.into()
-		}
-	}).collect::<Vec<Element>>();
+
+	let tag_buttons = info
+		.tags
+		.iter()
+		.map(|tag| {
+			if search.exclude.contains(tag) {
+				Button::new(Text::new(tag.to_string()))
+					.style(ButtonStyle::ExcludeTag)
+					.on_press(TagSelectorMessage::TagIgnored(tag.to_string()).into())
+					.into()
+			} else if search.include.contains(tag) {
+				Button::new(Text::new(tag.to_string()))
+					.style(ButtonStyle::IncludeTag)
+					.on_press(TagSelectorMessage::TagExcluded(tag.to_string()).into())
+					.into()
+			} else {
+				Button::new(Text::new(tag.to_string()))
+					.style(ButtonStyle::IgnoreTag)
+					.on_press(TagSelectorMessage::TagIncluded(tag.to_string()).into())
+					.into()
+			}
+		})
+		.collect::<Vec<Element>>();
 
 	let mut tags = repeat_with(|| Vec::with_capacity(3))
 		.take(tag_buttons.len() / 3)
 		.collect::<Vec<_>>();
-	
+
 	for (i, tag) in tag_buttons.into_iter().enumerate() {
 		tags[i / 3].push(tag)
 	}
-	
-	let tags = tags.into_iter().map(|row| {
-		Row::with_children(row).spacing(8).into()
-	}).collect();
+
+	let tags = tags
+		.into_iter()
+		.map(|row| Row::with_children(row).spacing(8).into())
+		.collect();
 
 	let info: Element = Scrollable::new(
 		Column::with_children(tags)

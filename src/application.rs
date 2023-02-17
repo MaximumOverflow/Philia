@@ -13,10 +13,10 @@ use crate::tags::*;
 
 pub struct Philia {
 	split: u16,
-	
+
 	pub client: Weak<Client>,
 	pub clients: Vec<Arc<Client>>,
-	
+
 	pub settings: Settings,
 	pub search: SearchContext,
 	pub download: DownloadContext,
@@ -49,13 +49,13 @@ impl Application for Philia {
 			None => Weak::new(),
 			Some(arc) => Arc::downgrade(arc),
 		};
-		
+
 		let philia = Self {
 			settings,
-			
+
 			client: client.clone(),
 			clients: sources,
-			
+
 			split: u16::MAX,
 			search: Default::default(),
 			download: Default::default(),
@@ -78,12 +78,8 @@ impl Application for Philia {
 			}
 
 			Message::SourceChanged(source) => {
-				self.client = Arc::downgrade(
-					self.clients.iter()
-						.find(|c| c.source().name == source)
-						.unwrap()
-				);
-				
+				self.client = Arc::downgrade(self.clients.iter().find(|c| c.source().name == source).unwrap());
+
 				self.search.include.clear();
 				self.search.exclude.clear();
 				self.tag_selector = TagSelectorContext::new_or_cached(self.client.upgrade());
@@ -130,9 +126,9 @@ fn read_sources() -> Vec<Arc<Client>> {
 		return vec![];
 	};
 
-	entries.flatten()
-		.map(|entry| std::fs::read_to_string(entry.path()))
+	entries
 		.flatten()
+		.flat_map(|entry| std::fs::read_to_string(entry.path()))
 		.filter_map(|json| serde_json::from_str::<Source>(&json).ok())
 		.map(|source| Arc::new(Client::new(source)))
 		.collect()
