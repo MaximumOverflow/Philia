@@ -56,7 +56,7 @@ pub fn post_viewer(search: &SearchContext, info: &Post, image: PostImage) -> Ele
 		.collect::<Vec<Element>>();
 
 	let mut tags = repeat_with(|| Vec::with_capacity(3))
-		.take(tag_buttons.len() / 3)
+		.take((tag_buttons.len() as f32 / 3.0).ceil() as usize)
 		.collect::<Vec<_>>();
 
 	for (i, tag) in tag_buttons.into_iter().enumerate() {
