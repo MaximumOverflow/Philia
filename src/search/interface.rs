@@ -40,7 +40,7 @@ pub fn post_list(context: &Philia) -> Element {
 				.style(ButtonStyle::Cancellable)
 				.into();
 
-			Tooltip::new(button, "Cancel post_viewer loading", Position::Top).into()
+			Tooltip::new(button, "Stop loading previews", Position::Top).into()
 		}
 	};
 

@@ -1,5 +1,6 @@
 use crate::application::{Message, Philia, Source};
 use std::time::{Duration, SystemTime};
+use std::collections::HashSet;
 use iced_native::Command;
 use philia::prelude::*;
 use std::sync::Arc;
@@ -8,11 +9,13 @@ pub enum TagSelectorContext {
 	New,
 	LoadingTagList,
 	ShowTagSelector {
+		source: Source,
 		search: String,
 		search_timestamp: Option<SystemTime>,
 
 		shown_tags: Vec<String>,
-		available_tags: Arc<Vec<String>>,
+		tag_set: HashSet<String>,
+		tag_vec: Arc<Vec<String>>,
 	},
 }
 
@@ -25,14 +28,16 @@ impl TagSelectorContext {
 				Err(_) => Self::New,
 				Ok(cache) => {
 					let mut shown_tags = vec![];
-					let available_tags = Arc::new(cache);
-					get_default_tags(&available_tags, &mut shown_tags);
+					get_default_tags(&cache, &mut shown_tags);
+					
+					let tag_set = cache.iter().cloned().collect();
+					let tag_vec = Arc::new(cache);
 
 					Self::ShowTagSelector {
+						source,
 						search: String::new(),
 						search_timestamp: None,
-						shown_tags,
-						available_tags,
+						shown_tags, tag_set, tag_vec,
 					}
 				}
 			},
@@ -104,11 +109,13 @@ impl TagSelectorMessage {
 			TagSelectorMessage::ReloadCompleted(tags) => {
 				let mut shown_tags = vec![];
 				get_default_tags(&tags, &mut shown_tags);
+				let tag_set = tags.iter().cloned().collect();
 				context.tag_selector = TagSelectorContext::ShowTagSelector {
 					shown_tags,
+					source: context.source,
 					search: String::new(),
 					search_timestamp: None,
-					available_tags: Arc::new(tags),
+					tag_vec: Arc::new(tags), tag_set
 				};
 
 				TagSelectorMessage::SearchChanged(String::new()).handle(context)
@@ -117,7 +124,7 @@ impl TagSelectorMessage {
 			TagSelectorMessage::SearchChanged(new_search) => {
 				if let TagSelectorContext::ShowTagSelector {
 					search,
-					available_tags,
+					tag_vec: available_tags,
 					search_timestamp,
 					..
 				} = &mut context.tag_selector
@@ -183,6 +190,17 @@ impl TagSelectorMessage {
 				context.search.include.remove(&tag);
 				context.search.exclude.insert(tag);
 				Command::none()
+			}
+		}
+	}
+}
+
+impl Drop for TagSelectorContext {
+	fn drop(&mut self) {
+		if let TagSelectorContext::ShowTagSelector { tag_vec, source, .. } = self {
+			if let Ok(json) = serde_json::to_string_pretty(&**tag_vec) {
+				let cache_patch = format!("cache/{:?}_tags.json", source);
+				let _ = std::fs::write(cache_patch, json);
 			}
 		}
 	}

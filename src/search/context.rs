@@ -11,6 +11,7 @@ use iced_native::Command;
 use image::ImageFormat;
 use std::io::Cursor;
 use strum::EnumIter;
+use crate::tags::TagSelectorContext;
 
 pub struct SearchContext {
 	pub page: usize,
@@ -148,6 +149,19 @@ impl SearchMessage {
 				if posts.is_empty() {
 					context.search.status = SearchStatus::Complete;
 					return Command::none();
+				}
+
+				if let TagSelectorContext::ShowTagSelector { tag_vec, tag_set, .. } = &mut context.tag_selector {
+					let tags_to_add: Vec<_> = posts.iter().flat_map(|p| p.tags.iter())
+						.filter(|t| !tag_set.contains(t.as_str()))
+						.cloned().collect();
+
+					if !tags_to_add.is_empty() {
+						let mut tags = (**tag_vec).clone();
+						tag_set.extend(tags_to_add.clone());
+						tags.extend(tags_to_add);
+						*tag_vec = Arc::new(tags);
+					}
 				}
 
 				let results = posts
