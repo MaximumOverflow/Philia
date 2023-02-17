@@ -1,0 +1,61 @@
+{
+  "name": "E621",
+  "search": {
+    "base_url": "https://e621.net/posts.json?",
+    "tag_separator": "+",
+    "tag_exclusion_prefix": "-",
+    "result_key": "posts",
+    "post": {
+      "id": "id",
+      "hash": "file.md5",
+      "score": "score.total",
+      "resource_url": "file.url",
+      "tags": {
+        "Categorized": {
+          "prefix": "tags.",
+          "categories": [
+            "general",
+            "species",
+            "character",
+            "copyright",
+            "artist",
+            "lore",
+            "meta"
+          ],
+          "separator": null
+        }
+      },
+      "rating": "rating",
+      "rating_map": {
+        "g": "General",
+        "q": "Questionable",
+        "e": "Explicit",
+        "s": "Sensitive"
+      }
+    },
+    "parameters": {
+      "tags": "tags",
+      "page": "page",
+      "limit": "limit"
+    },
+    "order": {
+      "Oldest": "order:id_asc",
+      "MostLiked": "order:score_desc",
+      "LeastLiked": "order:score_asc",
+      "Newest": "order:id_desc"
+    }
+  },
+  "tag_list": {
+    "base_url": "https://e621.net/tags.json?",
+    "parameters": {
+      "page": "page",
+      "limit": "limit",
+      "search": "search[order]=count"
+    },
+    "tags": {
+      "id": "id",
+      "name": "name",
+      "count": "post_count"
+    }
+  }
+}

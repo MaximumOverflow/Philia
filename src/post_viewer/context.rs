@@ -1,16 +1,15 @@
 use crate::application::{Message, Philia};
-use philia::prelude::DownloadAsync;
-use philia::prelude::GenericPost;
 use iced_native::image::Handle;
 use crate::search::PostPreview;
+use philia::prelude::Post;
 use std::time::SystemTime;
 use iced_native::Command;
 
 pub enum PostViewerContext {
 	None,
 	Some {
+		info: Post,
 		image: PostImage,
-		info: GenericPost,
 		timestamp: SystemTime,
 	},
 }
@@ -55,6 +54,10 @@ impl PostViewerMessage {
 			}
 
 			PostViewerMessage::Opened(index) => {
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
+				
 				let timestamp = SystemTime::now();
 				let post = context.search.results[index].clone();
 
@@ -70,7 +73,7 @@ impl PostViewerMessage {
 
 				Command::perform(
 					async move {
-						match post.info.download_async().await {
+						match client.download_async(&post.info).await {
 							Ok(bytes) => {
 								let handle = Handle::from_memory(bytes);
 								PostViewerMessage::Loaded(timestamp, PostImage::Loaded(handle)).into()

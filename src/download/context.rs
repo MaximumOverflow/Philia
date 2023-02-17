@@ -1,5 +1,4 @@
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
-use philia::prelude::{Post, DownloadAsync};
 use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
 use crate::search::SearchResult;
@@ -7,6 +6,7 @@ use native_dialog::FileDialog;
 use std::sync::{Arc, Mutex};
 use iced_native::Command;
 use std::io::Cursor;
+use std::path::Path;
 
 #[derive(Default)]
 pub enum DownloadContext {
@@ -46,6 +46,10 @@ impl DownloadMessage {
 			}
 
 			DownloadMessage::DownloadRequested(posts) => {
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
+				
 				let path = match FileDialog::new().show_open_single_dir() {
 					Ok(Some(path)) => path,
 					Err(err) => panic!("{}", err),
@@ -70,13 +74,23 @@ impl DownloadMessage {
 				Command::batch(posts.iter().map(|post| {
 					let dir = path.clone();
 					let post = post.clone();
+					let client = client.clone();
 					let current_timestamp = timestamp.clone();
 					let save_tags = context.settings.save_tags;
 					let add_letterboxing = context.settings.apply_letterboxing;
 
 					Command::perform(
 						async move {
-							let img = format!("{}.{}", post.info.id, post.info.file_ext().unwrap());
+							let Some(resource_url) = &post.info.resource_url else {
+								return DownloadMessage::ImageDownloaded(false).into();
+							};
+							
+							let img = format! {
+								"{}.{}", 
+								post.info.id, 
+								Path::new(resource_url).extension().unwrap().to_str().unwrap()
+							};
+							
 							let img_path = dir.join(img);
 
 							let image_downloaded = if !img_path.exists() {
@@ -91,7 +105,7 @@ impl DownloadMessage {
 										return DownloadMessage::ImageDownloaded(false).into();
 									}
 
-									match post.info.download_async().await {
+									match client.download_async(&post.info).await {
 										Ok(mut bytes) => {
 											if *current_timestamp.lock().unwrap() != initial_timestamp {
 												println!("Download of post {} canceled. Aborting...", post.info.id);

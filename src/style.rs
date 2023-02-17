@@ -167,6 +167,7 @@ pub enum TextStyle {
 	#[default]
 	White,
 	Black,
+	Yellow,
 }
 
 impl text::StyleSheet for Theme {
@@ -179,6 +180,9 @@ impl text::StyleSheet for Theme {
 			},
 			TextStyle::White => text::Appearance {
 				color: color!(255, 255, 255).into(),
+			},
+			TextStyle::Yellow => text::Appearance {
+				color: color!(255, 197, 105).into(),
 			},
 		}
 	}

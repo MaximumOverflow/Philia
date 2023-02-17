@@ -1,4 +1,4 @@
-use crate::application::{Message, Philia, Source};
+use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
 use std::collections::HashSet;
 use iced_native::Command;
@@ -9,7 +9,7 @@ pub enum TagSelectorContext {
 	New,
 	LoadingTagList,
 	ShowTagSelector {
-		source: Source,
+		client: Option<Arc<Client>>,
 		search: String,
 		search_timestamp: Option<SystemTime>,
 
@@ -20,8 +20,12 @@ pub enum TagSelectorContext {
 }
 
 impl TagSelectorContext {
-	pub fn new_or_cached(source: Source) -> Self {
-		let cache_patch = format!("cache/{:?}_tags.json", source);
+	pub fn new_or_cached(client: Option<Arc<Client>>) -> Self {
+		let cache_patch = match &client {
+			None => return Self::New,
+			Some(client) => format!("cache/{}_tags.json", client.source().name)
+		};
+		
 		match std::fs::read_to_string(cache_patch) {
 			Err(_) => Self::New,
 			Ok(cache) => match serde_json::from_str::<Vec<String>>(&cache) {
@@ -34,7 +38,7 @@ impl TagSelectorContext {
 					let tag_vec = Arc::new(cache);
 
 					Self::ShowTagSelector {
-						source,
+						client,
 						search: String::new(),
 						search_timestamp: None,
 						shown_tags, tag_set, tag_vec,
@@ -49,6 +53,7 @@ impl TagSelectorContext {
 pub enum TagSelectorMessage {
 	ReloadRequested,
 	ReloadCompleted(Vec<String>),
+	TagCreated(String),
 	TagIgnored(String),
 	TagIncluded(String),
 	TagExcluded(String),
@@ -65,45 +70,46 @@ impl From<TagSelectorMessage> for Message {
 impl TagSelectorMessage {
 	pub fn handle(self, context: &mut Philia) -> Command<Message> {
 		match self {
-			TagSelectorMessage::ReloadRequested => match context.source {
-				Source::E621 => {
-					let source = context.source;
-					context.tag_selector = TagSelectorContext::LoadingTagList;
-					Command::perform(
-						async move {
-							println!("Loading tag list for {:?}...", source);
-							let mut tags = vec![];
+			TagSelectorMessage::ReloadRequested => {
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
 
-							for page in 1..=50 {
-								let result = TagsAsync::get_tags_async(&E621, 320, page).await;
-								match result {
-									Ok(page_tags) => {
-										println! {
-											"({}) Extending tags by {} elements",
-											page, page_tags.len()
-										};
-										tags.extend(page_tags);
-										async_std::task::sleep(Duration::from_millis(600)).await;
-									}
+				context.tag_selector = TagSelectorContext::LoadingTagList;
+				Command::perform(
+					async move {
+						println!("Loading tag list for {:?}...", client.source().name);
+						let mut tags = vec![];
 
-									_ => break,
+						for page in 1..=1 {
+							let result = client.tags_async(page, 320).await;
+							match result {
+								Ok(page_tags) => {
+									println! {
+										"({}) Extending tags by {} elements",
+										page, page_tags.len()
+									};
+									tags.extend(page_tags);
+									async_std::task::sleep(Duration::from_millis(600)).await;
 								}
+
+								_ => break,
 							}
+						}
 
-							tags.sort_by_key(|tag| usize::MAX - tag.post_count);
-							let tags = tags.into_iter().map(|tag| tag.name).collect();
+						tags.sort_by_key(|tag| usize::MAX - tag.count);
+						let tags = tags.into_iter().map(|tag| tag.name).collect();
 
-							let _ = std::fs::create_dir("cache");
-							let cache_patch = format!("cache/{:?}_tags.json", source);
-							let cache_value = serde_json::to_string_pretty(&tags).unwrap();
-							let cache_result = std::fs::write(cache_patch, cache_value);
-							println!("Tag caching result: {:?}", cache_result);
+						let _ = std::fs::create_dir("cache");
+						let cache_patch = format!("cache/{}_tags.json", client.source().name);
+						let cache_value = serde_json::to_string_pretty(&tags).unwrap();
+						let cache_result = std::fs::write(cache_patch, cache_value);
+						println!("Tag caching result: {:?}", cache_result);
 
-							TagSelectorMessage::ReloadCompleted(tags).into()
-						},
-						|message| message,
-					)
-				} // Source::Rule34 => Command::none(),
+						TagSelectorMessage::ReloadCompleted(tags).into()
+					},
+					|message| message,
+				)
 			},
 
 			TagSelectorMessage::ReloadCompleted(tags) => {
@@ -112,7 +118,7 @@ impl TagSelectorMessage {
 				let tag_set = tags.iter().cloned().collect();
 				context.tag_selector = TagSelectorContext::ShowTagSelector {
 					shown_tags,
-					source: context.source,
+					client: context.client.upgrade(),
 					search: String::new(),
 					search_timestamp: None,
 					tag_vec: Arc::new(tags), tag_set
@@ -173,6 +179,23 @@ impl TagSelectorMessage {
 
 				Command::none()
 			}
+			
+			TagSelectorMessage::TagCreated(tag) => {
+				if let TagSelectorContext::ShowTagSelector {
+					tag_set, tag_vec, search, ..
+				} = &mut context.tag_selector {
+					if tag_set.insert(tag.clone()) {
+						let mut vec = (**tag_vec).clone();
+						vec.push(tag);
+						*tag_vec = Arc::new(vec);
+					}
+
+					TagSelectorMessage::SearchChanged(search.clone()).handle(context)
+				}
+				else {
+					Command::none()
+				}
+			}
 
 			TagSelectorMessage::TagIgnored(tag) => {
 				context.search.include.remove(&tag);
@@ -197,9 +220,13 @@ impl TagSelectorMessage {
 
 impl Drop for TagSelectorContext {
 	fn drop(&mut self) {
-		if let TagSelectorContext::ShowTagSelector { tag_vec, source, .. } = self {
+		if let TagSelectorContext::ShowTagSelector { tag_vec, client, .. } = self {
+			let Some(client) = client else {
+				return;
+			};
+			
 			if let Ok(json) = serde_json::to_string_pretty(&**tag_vec) {
-				let cache_patch = format!("cache/{:?}_tags.json", source);
+				let cache_patch = format!("cache/{}_tags.json", client.source().name);
 				let _ = std::fs::write(cache_patch, json);
 			}
 		}

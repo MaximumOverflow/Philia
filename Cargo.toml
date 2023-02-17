@@ -1,6 +1,6 @@
 [package]
 name = "philia_gui"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -16,7 +16,7 @@ native-dialog = "0.6.3"
 strum = { version = "0.24", features = ["derive"] }
 serde = { version = "1.0.152", features = ["derive"] }
 iced = { version = "0.7.0", features = ["image", "tokio"] }
-philia = { git = "https://github.com/MaximumOverflow/Philia", branch = "master" }
+philia = { git = "https://github.com/MaximumOverflow/Philia", rev = "2a4d471" }
 iced_aw = {version = "0.3.0", features = ["number_input", "split", "modal", "card"]}
 
 [profile.dev.package."*"]

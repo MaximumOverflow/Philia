@@ -1,15 +1,16 @@
-use crate::application::{Message, Philia, Source};
-use philia::prelude::{E621, GenericPost};
+use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
 use std::fmt::{Display, Formatter};
-use philia::search::SearchBuilder;
+use philia::prelude::{Order, SearchBuilder};
 use image::imageops::FilterType;
 use iced_native::image::Handle;
 use std::collections::HashSet;
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 use iced_native::Command;
 use image::ImageFormat;
 use std::io::Cursor;
+use philia::prelude::Post;
 use strum::EnumIter;
 use crate::tags::TagSelectorContext;
 
@@ -52,8 +53,8 @@ pub enum SearchStatus {
 
 #[derive(Debug, Clone)]
 pub struct SearchResult {
+	pub info: Post,
 	pub size: (u32, u32),
-	pub info: GenericPost,
 	pub preview: PostPreview,
 }
 
@@ -84,25 +85,6 @@ impl Display for Sorting {
 	}
 }
 
-impl Sorting {
-	pub fn as_tag(&self, source: Source) -> &str {
-		match source {
-			Source::E621 => match self {
-				Sorting::Date => "",
-				Sorting::DateAsc => "order:id",
-				Sorting::Score => "order:score",
-				Sorting::ScoreAsc => "order:score_asc",
-			},
-			// Source::Rule34 => match self {
-			// 	Sorting::Date => "",
-			// 	Sorting::DateAsc => "sort:id",
-			// 	Sorting::Score => "sort:score",
-			// 	Sorting::ScoreAsc => "sort:score_asc",
-			// }
-		}
-	}
-}
-
 #[derive(Debug, Clone)]
 pub enum SearchMessage {
 	SearchCanceled,
@@ -110,7 +92,7 @@ pub enum SearchMessage {
 	PageChanged(usize),
 	PerPageChanged(usize),
 	SortingChanged(Sorting),
-	SearchReturned(Vec<GenericPost>),
+	SearchReturned(Vec<Post>),
 	PushImage(usize, (u32, u32), Option<Handle>),
 }
 
@@ -153,8 +135,10 @@ impl SearchMessage {
 
 				if let TagSelectorContext::ShowTagSelector { tag_vec, tag_set, .. } = &mut context.tag_selector {
 					let tags_to_add: Vec<_> = posts.iter().flat_map(|p| p.tags.iter())
-						.filter(|t| !tag_set.contains(t.as_str()))
-						.cloned().collect();
+						.filter_map(|t| match tag_set.contains(t) {
+							true => None,
+							false => Some(t.to_string())
+						}).collect();
 
 					if !tags_to_add.is_empty() {
 						let mut tags = (**tag_vec).clone();
@@ -186,19 +170,24 @@ impl SearchMessage {
 				Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 					const RETRY_COUNT: usize = 8;
 
-					fn handle_failed(i: usize, post: &GenericPost) -> Message {
-						println!("Failed downloading post_viewer for post {}. Aborting...", post.id);
+					fn handle_failed(i: usize, post: &Post) -> Message {
+						println!("Failed downloading preview for post {}. Aborting...", post.id);
 						SearchMessage::PushImage(i, (0, 0), None).into()
 					}
 
-					fn handle_canceled(i: usize, post: &GenericPost) -> Message {
-						println!("Download of post_viewer for post {} canceled. Aborting...", post.id);
+					fn handle_failed_err(i: usize, post: &Post, err: impl Error) -> Message {
+						println!("Failed downloading preview for post {}. Aborting... {:#?}", post.id, err);
 						SearchMessage::PushImage(i, (0, 0), None).into()
 					}
 
-					async fn handle_retry(post: &GenericPost, retry: &mut usize) {
+					fn handle_canceled(i: usize, post: &Post) -> Message {
+						println!("Download of preview for post {} canceled. Aborting...", post.id);
+						SearchMessage::PushImage(i, (0, 0), None).into()
+					}
+
+					async fn handle_retry(post: &Post, retry: &mut usize) {
 						println!(
-							"Failed downloading post_viewer for post {}. Retry {} of {}",
+							"Failed downloading preview for post {}. Retry {} of {}",
 							post.id, retry, RETRY_COUNT
 						);
 
@@ -216,14 +205,18 @@ impl SearchMessage {
 								if *current_timestamp.lock().unwrap() != initial_timestamp {
 									break handle_canceled(i, &post);
 								}
+								
+								let Some(url) = &post.resource_url else {
+									break handle_failed(i, &post)
+								};
 
-								match reqwest::get(&post.resource_url).await {
+								match reqwest::get(url).await {
 									Ok(result) => match result.bytes().await {
 										Ok(bytes) => {
 											let mut bytes = bytes.to_vec();
 											let image = match image::load_from_memory(&bytes) {
 												Ok(image) => image,
-												Err(_) => break handle_failed(i, &post),
+												Err(err) => break handle_failed_err(i, &post, err),
 											};
 
 											const HORIZONTAL_PIXELS: u32 = 512;
@@ -252,11 +245,11 @@ impl SearchMessage {
 											.into();
 										}
 
-										Err(_) if retry == RETRY_COUNT => break handle_failed(i, &post),
+										Err(err) if retry == RETRY_COUNT => break handle_failed_err(i, &post, err),
 										Err(_) => handle_retry(&post, &mut retry).await,
 									},
 
-									Err(_) if retry == RETRY_COUNT => break handle_failed(i, &post),
+									Err(err) if retry == RETRY_COUNT => break handle_failed_err(i, &post, err),
 									Err(_) => handle_retry(&post, &mut retry).await,
 								}
 							}
@@ -267,31 +260,44 @@ impl SearchMessage {
 			}
 
 			SearchMessage::SearchRequested => {
-				let source = context.source;
+				let Some(client) = context.client.upgrade() else {
+					return Command::none();
+				};
+				
 				let timestamp = SystemTime::now();
 				context.search.results = Arc::new(vec![]);
 				context.search.status = SearchStatus::Searching;
 				*context.search.timestamp.lock().unwrap() = timestamp;
 
-				let mut search_builder = SearchBuilder::default();
-				search_builder
-					.exclude_tag("animated")
-					.include_tags(&context.search.include)
-					.exclude_tags(&context.search.exclude)
-					.include_tag(context.search.sorting.as_tag(source))
-					.limit(context.search.per_page)
-					.page(context.search.page);
-
+				let page = context.search.page;
+				let per_page = context.search.per_page;
+				let include = context.search.include.clone();
+				let exclude = context.search.exclude.clone();
+				
+				let order = match context.search.sorting {
+					Sorting::Date => Order::Newest,
+					Sorting::DateAsc => Order::Oldest,
+					Sorting::Score => Order::MostLiked,
+					Sorting::ScoreAsc => Order::LeastLiked,
+				};
+				
 				Command::perform(
 					async move {
 						println!("Staring search...");
 
-						let search = match source {
-							Source::E621 => search_builder.dyn_search_async(&E621),
-							// Source::Rule34 => search_builder.dyn_search_async(&Rule34),
-						};
+						let mut search_builder = SearchBuilder::new(&client);
+						search_builder
+							.exclude_tag("animated")
+							.include_tags(include)
+							.exclude_tags(exclude)
+							.order(order)
+							.limit(per_page)
+							.page(page);
 
-						let posts = match search.await {
+
+						let search = search_builder.search_async().await;
+
+						let posts = match search {
 							Ok(posts) => posts,
 							Err(err) => {
 								println!("{:?}", err);

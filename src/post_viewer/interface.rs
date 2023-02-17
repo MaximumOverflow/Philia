@@ -3,13 +3,14 @@ use crate::post_viewer::{PostImage, PostViewerMessage};
 use iced::{Alignment, Length, Padding};
 use crate::tags::TagSelectorMessage;
 use crate::search::SearchContext;
-use philia::prelude::GenericPost;
 use crate::application::Element;
 use crate::style::ButtonStyle;
+use std::iter::repeat_with;
+use philia::prelude::Post;
 use iced_native::row;
 use iced_aw::Card;
 
-pub fn post_viewer(search: &SearchContext, info: &GenericPost, image: PostImage) -> Element<'static> {
+pub fn post_viewer(search: &SearchContext, info: &Post, image: PostImage) -> Element<'static> {
 	let image: Element = match image {
 		PostImage::Pending => Container::new(Text::new("Loading image..."))
 			.width(Length::Fill)
@@ -30,36 +31,37 @@ pub fn post_viewer(search: &SearchContext, info: &GenericPost, image: PostImage)
 			Scrollable::new(image).into()
 		}
 	};
+	
+	let tag_buttons = info.tags.iter().map(|tag| {
+		if search.exclude.contains(tag) {
+			Button::new(Text::new(tag.to_string()))
+				.style(ButtonStyle::ExcludeTag)
+				.on_press(TagSelectorMessage::TagIgnored(tag.to_string()).into())
+				.into()
+		} else if search.include.contains(tag) {
+			Button::new(Text::new(tag.to_string()))
+				.style(ButtonStyle::IncludeTag)
+				.on_press(TagSelectorMessage::TagExcluded(tag.to_string()).into())
+				.into()
+		} else {
+			Button::new(Text::new(tag.to_string()))
+				.style(ButtonStyle::IgnoreTag)
+				.on_press(TagSelectorMessage::TagIncluded(tag.to_string()).into())
+				.into()
+		}
+	}).collect::<Vec<Element>>();
 
-	let mut tags = vec![];
-	for chunk in info.tags.chunks(3) {
-		let row = Row::with_children(
-			chunk
-				.iter()
-				.map(|tag| {
-					if search.exclude.contains(tag) {
-						Button::new(Text::new(tag.clone()))
-							.style(ButtonStyle::ExcludeTag)
-							.on_press(TagSelectorMessage::TagIgnored(tag.clone()).into())
-							.into()
-					} else if search.include.contains(tag) {
-						Button::new(Text::new(tag.clone()))
-							.style(ButtonStyle::IncludeTag)
-							.on_press(TagSelectorMessage::TagExcluded(tag.clone()).into())
-							.into()
-					} else {
-						Button::new(Text::new(tag.clone()))
-							.style(ButtonStyle::IgnoreTag)
-							.on_press(TagSelectorMessage::TagIncluded(tag.clone()).into())
-							.into()
-					}
-				})
-				.collect(),
-		)
-		.spacing(8);
-
-		tags.push(row.into())
+	let mut tags = repeat_with(|| Vec::with_capacity(3))
+		.take(tag_buttons.len() / 3)
+		.collect::<Vec<_>>();
+	
+	for (i, tag) in tag_buttons.into_iter().enumerate() {
+		tags[i / 3].push(tag)
 	}
+	
+	let tags = tags.into_iter().map(|row| {
+		Row::with_children(row).spacing(8).into()
+	}).collect();
 
 	let info: Element = Scrollable::new(
 		Column::with_children(tags)

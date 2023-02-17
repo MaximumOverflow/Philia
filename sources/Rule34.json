@@ -1,0 +1,41 @@
+{
+  "name": "Rule34",
+  "search": {
+    "base_url": "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
+    "tag_separator": "+",
+    "tag_exclusion_prefix": "-",
+    "result_key": null,
+    "post": {
+      "id": "id",
+      "hash": "hash",
+      "score": "score",
+      "resource_url": "file_url",
+      "tags": {
+        "All": {
+          "key": "tags",
+          "separator": " "
+        }
+      },
+      "rating": "rating",
+      "rating_map": {
+        "general": "General",
+        "safe": "Safe",
+        "explicit": "Explicit",
+        "sensitive": "Sensitive",
+        "questionable": "Questionable"
+      }
+    },
+    "parameters": {
+      "tags": "tags",
+      "page": "pid",
+      "limit": "limit"
+    },
+    "order": {
+      "LeastLiked": "sort:score:asc",
+      "Newest": "sort:id:desc",
+      "Oldest": "sort:id:asc",
+      "MostLiked": "sort:score:desc"
+    }
+  },
+  "tag_list": null
+}

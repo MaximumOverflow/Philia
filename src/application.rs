@@ -1,9 +1,10 @@
 use crate::post_viewer::{PostViewerContext, PostViewerMessage, post_viewer};
 use crate::settings::{Settings, settings, SettingsMessage};
 use crate::download::{DownloadContext, DownloadMessage};
+use philia::prelude::{Client, Source};
 use iced::{Application, Renderer};
-use strum::{Display, EnumIter};
 use iced_aw::{Modal, Split};
+use std::sync::{Arc, Weak};
 use iced_aw::split::Axis;
 use iced_native::Command;
 use crate::search::*;
@@ -12,7 +13,10 @@ use crate::tags::*;
 
 pub struct Philia {
 	split: u16,
-	pub source: Source,
+	
+	pub client: Weak<Client>,
+	pub clients: Vec<Arc<Client>>,
+	
 	pub settings: Settings,
 	pub search: SearchContext,
 	pub download: DownloadContext,
@@ -23,19 +27,12 @@ pub struct Philia {
 #[derive(Debug, Clone)]
 pub enum Message {
 	SplitChanged(u16),
-	SourceChanged(Source),
+	SourceChanged(String),
 	SearchMessage(SearchMessage),
 	DownloadMessage(DownloadMessage),
 	SettingsMessage(SettingsMessage),
 	TagSelectorMessage(TagSelectorMessage),
 	PostPreviewMessage(PostViewerMessage),
-}
-
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, EnumIter, Display)]
-pub enum Source {
-	#[default]
-	E621,
-	// Rule34,
 }
 
 pub type Element<'l> = iced::Element<'l, Message, Renderer<Theme>>;
@@ -47,14 +44,23 @@ impl Application for Philia {
 	type Flags = Settings;
 
 	fn new(settings: Self::Flags) -> (Self, Command<Self::Message>) {
+		let sources = read_sources();
+		let client = match sources.get(0) {
+			None => Weak::new(),
+			Some(arc) => Arc::downgrade(arc),
+		};
+		
 		let philia = Self {
 			settings,
+			
+			client: client.clone(),
+			clients: sources,
+			
 			split: u16::MAX,
-			source: Default::default(),
 			search: Default::default(),
 			download: Default::default(),
 			preview: PostViewerContext::None,
-			tag_selector: TagSelectorContext::new_or_cached(Default::default()),
+			tag_selector: TagSelectorContext::new_or_cached(client.upgrade()),
 		};
 
 		(philia, Command::none())
@@ -72,8 +78,15 @@ impl Application for Philia {
 			}
 
 			Message::SourceChanged(source) => {
-				self.source = source;
-				self.tag_selector = TagSelectorContext::new_or_cached(source);
+				self.client = Arc::downgrade(
+					self.clients.iter()
+						.find(|c| c.source().name == source)
+						.unwrap()
+				);
+				
+				self.search.include.clear();
+				self.search.exclude.clear();
+				self.tag_selector = TagSelectorContext::new_or_cached(self.client.upgrade());
 				Command::none()
 			}
 
@@ -110,4 +123,17 @@ impl Application for Philia {
 		.on_esc(SettingsMessage::SettingsClosed.into())
 		.into()
 	}
+}
+
+fn read_sources() -> Vec<Arc<Client>> {
+	let Ok(entries) = std::fs::read_dir("sources") else {
+		return vec![];
+	};
+
+	entries.flatten()
+		.map(|entry| std::fs::read_to_string(entry.path()))
+		.flatten()
+		.filter_map(|json| serde_json::from_str::<Source>(&json).ok())
+		.map(|source| Arc::new(Client::new(source)))
+		.collect()
 }

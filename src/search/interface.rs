@@ -1,7 +1,7 @@
 use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip, Container};
 use crate::search::{PostPreview, SearchMessage, SearchStatus, Sorting};
-use crate::application::{Element, Message, Philia, Source};
 use crate::download::{DownloadContext, DownloadMessage};
+use crate::application::{Element, Message, Philia};
 use iced_native::widget::tooltip::Position;
 use crate::post_viewer::PostViewerMessage;
 use iced::{Alignment, Length, Padding};
@@ -14,6 +14,7 @@ use iced_aw::NumberInput;
 use std::ops::Deref;
 
 pub fn post_list(context: &Philia) -> Element {
+	let client = context.client.upgrade();
 	let page: Element = NumberInput::new(context.search.page, usize::MAX, |value| {
 		SearchMessage::PageChanged(value).into()
 	})
@@ -27,9 +28,13 @@ pub fn post_list(context: &Philia) -> Element {
 	.into();
 
 	let search: Element = match context.search.status {
-		SearchStatus::Complete => Button::new(Text::new("Search"))
-			.on_press(SearchMessage::SearchRequested.into())
-			.into(),
+		SearchStatus::Complete => match &client {
+			None => Button::new(Text::new("Search")).into(),
+			
+			Some(_) => Button::new(Text::new("Search"))
+				.on_press(SearchMessage::SearchRequested.into())
+				.into()
+		},
 
 		SearchStatus::Searching => Button::new(Text::new("Searching...")).into(),
 
@@ -49,7 +54,8 @@ pub fn post_list(context: &Philia) -> Element {
 		.into();
 
 	let download: Element = match context.download {
-		DownloadContext::Complete if context.search.status == SearchStatus::Complete => {
+		DownloadContext::Complete 
+		if context.search.status == SearchStatus::Complete && client.is_some() => {
 			Button::new(Text::new("Download all"))
 				.on_press(DownloadMessage::DownloadRequested(context.search.results.clone()).into())
 				.into()
@@ -68,10 +74,15 @@ pub fn post_list(context: &Philia) -> Element {
 		_ => Button::new(Text::new("Download all")).into(),
 	};
 
-	let source: Element = PickList::new(Source::iter().collect::<Vec<_>>(), Some(context.source), |source| {
-		Message::SourceChanged(source)
-	})
-	.into();
+	let source = {
+		let options: Vec<_> = context.clients.iter()
+			.map(|client| client.source().name.clone())
+			.collect();
+		
+		let selected = client.as_ref().map(|client| client.source().name.clone());
+		
+		PickList::new(options, selected, |name| Message::SourceChanged(name))
+	};
 
 	let sorting: Element =
 		PickList::new(Sorting::iter().collect::<Vec<_>>(), Some(context.search.sorting), |sorting| {
