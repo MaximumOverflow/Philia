@@ -1,0 +1,54 @@
+{
+  "name": "Gelbooru",
+  "search": {
+    "base_url": "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&",
+    "tag_separator": "+",
+    "tag_exclusion_prefix": "-",
+    "result_key": "post",
+    "post": {
+      "id": "id",
+      "hash": "md5",
+      "score": "score",
+      "resource_url": "file_url",
+      "tags": {
+        "All": {
+          "key": "tags",
+          "separator": " "
+        }
+      },
+      "rating": "rating",
+      "rating_map": {
+        "safe": "Safe",
+        "explicit": "Explicit",
+        "sensitive": "Sensitive",
+        "general": "General",
+        "questionable": "Questionable"
+      }
+    },
+    "parameters": {
+      "tags": "tags",
+      "page": "pid",
+      "limit": "limit"
+    },
+    "order": {
+      "LeastLiked": "sort:score:asc",
+      "Oldest": "sort:id:asc",
+      "Newest": "sort:id:desc",
+      "MostLiked": "sort:score:desc"
+    }
+  },
+  "tag_list": {
+    "base_url": "https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&",
+    "result_key": "tag",
+    "parameters": {
+      "page": "pid",
+      "limit": "limit",
+      "search": "order=desc&orderby=count"
+    },
+    "tags": {
+      "id": "id",
+      "name": "name",
+      "count": "count"
+    }
+  }
+}

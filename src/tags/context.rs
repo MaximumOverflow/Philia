@@ -83,7 +83,7 @@ impl TagSelectorMessage {
 						println!("Loading tag list for {:?}...", client.source().name);
 						let mut tags = vec![];
 
-						for page in 1..=1 {
+						for page in 1..=50 {
 							let result = client.tags_async(page, 320).await;
 							match result {
 								Ok(page_tags) => {

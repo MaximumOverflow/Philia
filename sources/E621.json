@@ -47,6 +47,7 @@
   },
   "tag_list": {
     "base_url": "https://e621.net/tags.json?",
+    "result_key": null,
     "parameters": {
       "page": "page",
       "limit": "limit",
