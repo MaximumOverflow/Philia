@@ -60,8 +60,9 @@ impl TagSelectorContext {
 #[derive(Debug, Clone)]
 pub enum TagSelectorMessage {
 	ReloadRequested,
-	ReloadTick(Vec<String>),
-	ReloadCompleted(Vec<String>),
+	DownloadRequested,
+	DownloadTick(Vec<String>),
+	DownloadCompleted(Vec<String>),
 
 	TagCreated(String),
 	TagIgnored(String),
@@ -81,18 +82,22 @@ impl From<TagSelectorMessage> for Message {
 impl TagSelectorMessage {
 	pub fn handle(self, context: &mut Philia) -> Command<Message> {
 		match self {
-			TagSelectorMessage::ReloadRequested => {
+			TagSelectorMessage::DownloadRequested => {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
+				
+				if client.source().tag_list.is_none() {
+					return TagSelectorMessage::DownloadCompleted(vec![]).handle(context);
+				}
 
-				println!("Loading tag list for {:?}...", client.source().name);
+				println!("Downloading tag list for {:?}...", client.source().name);
 				context.tag_selector = TagSelectorContext::LoadingTagList { page: 0, tags: vec![] };
 
-				TagSelectorMessage::ReloadTick(vec![]).handle(context)
+				TagSelectorMessage::DownloadTick(vec![]).handle(context)
 			}
 
-			TagSelectorMessage::ReloadTick(page_tags) => {
+			TagSelectorMessage::DownloadTick(page_tags) => {
 				let TagSelectorContext::LoadingTagList { page, tags } = &mut context.tag_selector else {
 					return Command::none();
 				};
@@ -106,7 +111,7 @@ impl TagSelectorMessage {
 
 				if *page == 50 {
 					let tags = std::mem::take(tags);
-					TagSelectorMessage::ReloadCompleted(tags).handle(context)
+					TagSelectorMessage::DownloadCompleted(tags).handle(context)
 				} else {
 					let page = *page;
 					Command::perform(
@@ -124,14 +129,14 @@ impl TagSelectorMessage {
 
 							tags.sort_by_key(|tag| usize::MAX - tag.count);
 							let tags = tags.into_iter().map(|tag| tag.name).collect();
-							TagSelectorMessage::ReloadTick(tags).into()
+							TagSelectorMessage::DownloadTick(tags).into()
 						},
 						|message| message,
 					)
 				}
 			}
 
-			TagSelectorMessage::ReloadCompleted(tags) => {
+			TagSelectorMessage::DownloadCompleted(tags) => {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
@@ -155,6 +160,14 @@ impl TagSelectorMessage {
 				};
 
 				TagSelectorMessage::SearchChanged(String::new()).handle(context)
+			}
+
+			TagSelectorMessage::ReloadRequested => {
+				let TagSelectorContext::ShowTagSelector { search, .. }  = &mut context.tag_selector else {
+					return Command::none()
+				};
+
+				TagSelectorMessage::SearchChanged(search.clone()).handle(context)
 			}
 
 			TagSelectorMessage::SearchChanged(new_search) => {

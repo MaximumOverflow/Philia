@@ -34,7 +34,7 @@ pub fn tag_selector(context: &Philia) -> Element {
 						true => "Download tag list",
 						false => "Create tag list",
 					}))
-					.on_press(TagSelectorMessage::ReloadRequested.into())
+					.on_press(TagSelectorMessage::DownloadRequested.into())
 					.into();
 
 					Column::with_children(vec![text, button])

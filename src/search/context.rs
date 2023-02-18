@@ -1,7 +1,7 @@
+use crate::tags::{TagSelectorContext, TagSelectorMessage};
 use philia::prelude::{Order, SearchBuilder};
 use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
-use crate::tags::TagSelectorContext;
 use std::fmt::{Display, Formatter};
 use image::imageops::FilterType;
 use iced_native::image::Handle;
@@ -163,8 +163,8 @@ impl SearchMessage {
 
 				let current_timestamp = context.search.timestamp.clone();
 				let initial_timestamp = *current_timestamp.lock().unwrap();
-
-				Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
+				
+				let load = Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 					const RETRY_COUNT: usize = 8;
 
 					fn handle_failed(i: usize, post: &Post) -> Message {
@@ -253,7 +253,10 @@ impl SearchMessage {
 						},
 						|message| message,
 					)
-				}))
+				}));
+				
+				let refresh_tags = Command::perform(async {}, |_| TagSelectorMessage::ReloadRequested.into());
+				Command::batch([load, refresh_tags])
 			}
 
 			SearchMessage::SearchRequested => {
