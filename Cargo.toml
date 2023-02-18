@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 image = "0.24.5"
+itertools = "0.10.5"
 async-std = "1.12.0"
 reqwest = "0.11.13"
 notify-rust = "4.6.0"

@@ -163,7 +163,7 @@ impl SearchMessage {
 
 				let current_timestamp = context.search.timestamp.clone();
 				let initial_timestamp = *current_timestamp.lock().unwrap();
-				
+
 				let load = Command::batch(posts.into_iter().enumerate().map(|(i, post)| {
 					const RETRY_COUNT: usize = 8;
 
@@ -254,7 +254,7 @@ impl SearchMessage {
 						|message| message,
 					)
 				}));
-				
+
 				let refresh_tags = Command::perform(async {}, |_| TagSelectorMessage::ReloadRequested.into());
 				Command::batch([load, refresh_tags])
 			}

@@ -86,7 +86,7 @@ impl TagSelectorMessage {
 				let Some(client) = context.client.upgrade() else {
 					return Command::none();
 				};
-				
+
 				if client.source().tag_list.is_none() {
 					return TagSelectorMessage::DownloadCompleted(vec![]).handle(context);
 				}

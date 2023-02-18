@@ -4,11 +4,13 @@ use iced_native::Command;
 
 pub const SETTINGS_PATH: &str = "settings.json";
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
 	#[serde(skip_serializing, default = "Default::default")]
 	pub show: bool,
 	pub save_tags: bool,
+	pub remove_tag_underscores: bool,
+	pub escape_tag_parentheses: bool,
 	pub apply_letterboxing: bool,
 }
 
@@ -17,6 +19,8 @@ pub enum SettingsMessage {
 	SettingsOpened,
 	SettingsClosed,
 	ToggleSaveTags(bool),
+	ToggleRemoveUnderscores(bool),
+	ToggleEscapeParentheses(bool),
 	ToggleApplyLetterboxing(bool),
 }
 
@@ -42,6 +46,14 @@ impl SettingsMessage {
 
 			SettingsMessage::ToggleSaveTags(value) => {
 				context.settings.save_tags = value;
+			}
+
+			SettingsMessage::ToggleRemoveUnderscores(value) => {
+				context.settings.remove_tag_underscores = value;
+			}
+
+			SettingsMessage::ToggleEscapeParentheses(value) => {
+				context.settings.escape_tag_parentheses = value;
 			}
 
 			SettingsMessage::ToggleApplyLetterboxing(value) => {

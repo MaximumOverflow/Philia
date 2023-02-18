@@ -113,7 +113,7 @@ impl Application for Philia {
 
 		Modal::new(show_modal, content, || match &self.preview {
 			PostViewerContext::None => settings(&self.settings),
-			PostViewerContext::Some { info, image, .. } => post_viewer(&self.search, info, image.clone()),
+			PostViewerContext::Some { post, image, .. } => post_viewer(&self.search, post, image.clone()),
 		})
 		.backdrop(SettingsMessage::SettingsClosed.into())
 		.on_esc(SettingsMessage::SettingsClosed.into())

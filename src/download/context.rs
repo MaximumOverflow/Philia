@@ -5,6 +5,8 @@ use crate::search::SearchResult;
 use native_dialog::FileDialog;
 use std::sync::{Arc, Mutex};
 use iced_native::Command;
+use itertools::Itertools;
+use philia::data::Post;
 use std::io::Cursor;
 use std::path::Path;
 
@@ -75,9 +77,8 @@ impl DownloadMessage {
 					let dir = path.clone();
 					let post = post.clone();
 					let client = client.clone();
+					let settings = context.settings.clone();
 					let current_timestamp = timestamp.clone();
-					let save_tags = context.settings.save_tags;
-					let add_letterboxing = context.settings.apply_letterboxing;
 
 					Command::perform(
 						async move {
@@ -112,7 +113,7 @@ impl DownloadMessage {
 												return DownloadMessage::ImageDownloaded(false).into();
 											}
 
-											if add_letterboxing {
+											if settings.apply_letterboxing {
 												apply_letterboxing(&mut bytes);
 											}
 
@@ -138,21 +139,14 @@ impl DownloadMessage {
 								false
 							};
 
-							if save_tags {
+							if settings.save_tags {
 								let txt_path = dir.join(format!("{}.txt", post.info.id));
-								if save_tags && !txt_path.exists() {
-									let tags = post
-										.info
-										.tags
-										.iter()
-										.map(|t| t.replace(|c| c == '_', " "))
-										.collect::<Vec<_>>();
-
-									let tags = tags
-										.join(", ")
-										.replace(|c| c == '(', "\\(")
-										.replace(|c| c == ')', "\\)");
-
+								if !txt_path.exists() {
+									let tags = get_tag_string(
+										&post.info,
+										settings.remove_tag_underscores,
+										settings.escape_tag_parentheses,
+									);
 									std::fs::write(txt_path, tags).unwrap();
 								}
 							}
@@ -184,7 +178,7 @@ impl DownloadMessage {
 	}
 }
 
-fn apply_letterboxing(buffer: &mut Vec<u8>) {
+pub fn apply_letterboxing(buffer: &mut Vec<u8>) {
 	let image = image::load_from_memory(buffer).unwrap();
 	let dimensions = image.width().max(image.height());
 	let mut output = ImageBuffer::from_pixel(dimensions, dimensions, [0, 0, 0, 255].into());
@@ -199,4 +193,18 @@ fn apply_letterboxing(buffer: &mut Vec<u8>) {
 
 	buffer.clear();
 	output.write_to(&mut Cursor::new(buffer), ImageFormat::Png).unwrap();
+}
+
+pub fn get_tag_string(post: &Post, remove_underscores: bool, escape_parentheses: bool) -> String {
+	let tags = post.tags.iter().join(", ");
+
+	let tags = match remove_underscores {
+		false => tags,
+		true => tags.replace('_', " "),
+	};
+
+	match escape_parentheses {
+		false => tags,
+		true => tags.replace('(', "\\(").replace(')', "\\)"),
+	}
 }
