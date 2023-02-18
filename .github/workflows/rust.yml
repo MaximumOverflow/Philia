@@ -1,0 +1,95 @@
+name: Build Artifacts
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+    
+jobs:
+  Compile-Linux:
+    name: Compile for x86_64-unknown-linux-gnu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Set up Cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/            
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+        
+      - name: Compile
+        run: cargo build --profile production --target x86_64-unknown-linux-gnu
+          
+      - name: Prepare artifacts
+        run: |
+          mkdir x86_64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/production/philia_gui x86_64-unknown-linux-gnu/Philia.bin
+          cp -r sources x86_64-unknown-linux-gnu/sources
+          chmod +x x86_64-unknown-linux-gnu/Philia.bin
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-unknown-linux-gnu.zip
+          path: x86_64-unknown-linux-gnu
+          
+  Compile-Windows:
+    name: Compile for x86_64-pc-windows-gnu
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+          targets: x86_64-pc-windows-gnu
+
+      - name: Set up Cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/            
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Compile
+        run: cargo build --profile production --target x86_64-pc-windows-gnu
+        
+      - name: Tree
+        run: tree
+
+      - name: Prepare artifacts
+        continue-on-error: true
+        run: |
+          mkdir x86_64-pc-windows-gnu
+          copy /y target\x86_64-pc-windows-gnu\production\philia_gui.exe x86_64-pc-windows-gnu\Philia.exe
+          echo d | xcopy sources x86_64-pc-windows-gnu\sources /s /-y
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-pc-windows-gnu.zip
+          path: x86_64-pc-windows-gnu
