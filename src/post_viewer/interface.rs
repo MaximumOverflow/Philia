@@ -6,6 +6,8 @@ use crate::tags::TagSelectorMessage;
 use crate::application::Element;
 use crate::style::ButtonStyle;
 use std::iter::repeat_with;
+use itertools::Itertools;
+use philia::data::Tags;
 use iced_aw::Card;
 
 pub fn post_viewer(search: &SearchContext, post: &SearchResult, post_image: PostImage) -> Element<'static> {
@@ -23,47 +25,62 @@ pub fn post_viewer(search: &SearchContext, post: &SearchResult, post_image: Post
 	.center_y()
 	.into();
 
-	let info = &post.info;
+	let tags = match &post.info.tags {
+		Tags::All(tags) => {
+			let tags = make_tag_buttons(
+				tags.iter().map(String::as_str),
+				search
+			);
 
-	let tag_buttons = info
-		.tags
-		.iter()
-		.map(|tag| {
-			if search.exclude.contains(tag) {
-				Button::new(Text::new(tag.to_string()))
-					.style(ButtonStyle::ExcludeTag)
-					.on_press(TagSelectorMessage::TagIgnored(tag.to_string()).into())
-					.into()
-			} else if search.include.contains(tag) {
-				Button::new(Text::new(tag.to_string()))
-					.style(ButtonStyle::IncludeTag)
-					.on_press(TagSelectorMessage::TagExcluded(tag.to_string()).into())
-					.into()
-			} else {
-				Button::new(Text::new(tag.to_string()))
-					.style(ButtonStyle::IgnoreTag)
-					.on_press(TagSelectorMessage::TagIncluded(tag.to_string()).into())
-					.into()
-			}
-		})
-		.collect::<Vec<Element>>();
+			Column::with_children(tags)
+				.align_items(Alignment::Center)
+				.spacing(8)
+		},
 
-	let mut tags = repeat_with(|| Vec::with_capacity(3))
-		.take((tag_buttons.len() as f32 / 3.0).ceil() as usize)
-		.collect::<Vec<_>>();
+		Tags::Categorized(cats) => {
+			let tags = cats.iter()
+				.filter(|(category, tags)| {
+					!category.is_empty() && !tags.is_empty()
+				})
+				.sorted_by(|(a, _), (b, _)| {
+					a.cmp(b)
+				})
+				.map(|(category, tags)| {
+					let mut category = category.clone();
+					let first_char = category.chars().next().unwrap();
 
-	for (i, tag) in tag_buttons.into_iter().enumerate() {
-		tags[i / 3].push(tag)
-	}
+					if first_char.is_ascii() {
+						unsafe {
+							let bytes = category.as_bytes_mut();
+							bytes[0] = first_char.to_uppercase().next().unwrap() as u8;
+						}
+					}
 
-	let tags = tags
-		.into_iter()
-		.map(|row| Row::with_children(row).spacing(8).into())
-		.collect();
+					let label: Element = Text::new(category).into();
 
-	let info: Element = Container::new(Scrollable::new(
-		Column::with_children(tags).align_items(Alignment::Center).spacing(8),
-	))
+					let tags = make_tag_buttons(
+						tags.iter().map(String::as_str),
+						search
+					);
+
+					let tags: Element = Column::with_children(tags)
+						.align_items(Alignment::Center)
+						.spacing(8)
+						.into();
+
+					Column::with_children(vec![label, tags])
+						.align_items(Alignment::Center)
+						.spacing(8)
+						.into()
+				}).collect();
+
+			Column::with_children(tags)
+				.align_items(Alignment::Center)
+				.spacing(8)
+		}
+	};
+
+	let info: Element = Container::new(Scrollable::new(tags))
 	.height(Length::Fill)
 	.center_x()
 	.center_y()
@@ -97,4 +114,39 @@ pub fn post_viewer(search: &SearchContext, post: &SearchResult, post_image: Post
 	let card = Card::new(Text::new("Post post_viewer"), content).on_close(PostViewerMessage::Closed.into());
 
 	Column::new().push(card).padding(Padding::new(100)).into()
+}
+
+fn make_tag_buttons<'l>(tags: impl Iterator<Item=&'l str>, search: &SearchContext) -> Vec<Element<'static>> {
+	let tag_buttons = tags.map(|tag| {
+		let tag = tag.to_string();
+		if search.exclude.contains(&tag) {
+			Button::new(Text::new(tag.clone()))
+				.style(ButtonStyle::ExcludeTag)
+				.on_press(TagSelectorMessage::TagIgnored(tag.clone()).into())
+				.into()
+		} else if search.include.contains(&tag) {
+			Button::new(Text::new(tag.clone()))
+				.style(ButtonStyle::IncludeTag)
+				.on_press(TagSelectorMessage::TagExcluded(tag.clone()).into())
+				.into()
+		} else {
+			Button::new(Text::new(tag.clone()))
+				.style(ButtonStyle::IgnoreTag)
+				.on_press(TagSelectorMessage::TagIncluded(tag.clone()).into())
+				.into()
+		}
+	}).collect::<Vec<Element>>();
+
+	let mut tags = repeat_with(|| Vec::with_capacity(3))
+		.take((tag_buttons.len() as f32 / 3.0).ceil() as usize)
+		.collect::<Vec<_>>();
+
+	for (i, tag) in tag_buttons.into_iter().enumerate() {
+		tags[i / 3].push(tag)
+	}
+
+	tags
+		.into_iter()
+		.map(|row| Row::with_children(row).spacing(8).into())
+		.collect()
 }
