@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
@@ -6,9 +7,10 @@ use native_dialog::FileDialog;
 use std::sync::{Arc, Mutex};
 use iced_native::Command;
 use itertools::Itertools;
-use philia::data::Post;
+use philia::data::{Post, Tags};
 use std::io::Cursor;
 use std::path::Path;
+use crate::settings::TagSettings;
 
 #[derive(Default)]
 pub enum DownloadContext {
@@ -113,7 +115,7 @@ impl DownloadMessage {
 												return DownloadMessage::ImageDownloaded(false).into();
 											}
 
-											if settings.apply_letterboxing {
+											if settings.image_settings.apply_letterboxing {
 												apply_letterboxing(&mut bytes);
 											}
 
@@ -139,14 +141,10 @@ impl DownloadMessage {
 								false
 							};
 
-							if settings.save_tags {
+							if settings.tag_settings.save_tags {
 								let txt_path = dir.join(format!("{}.txt", post.info.id));
 								if !txt_path.exists() {
-									let tags = get_tag_string(
-										&post.info,
-										settings.remove_tag_underscores,
-										settings.escape_tag_parentheses,
-									);
+									let tags = get_tag_string(&post.info, &settings.tag_settings);
 									std::fs::write(txt_path, tags).unwrap();
 								}
 							}
@@ -195,15 +193,24 @@ pub fn apply_letterboxing(buffer: &mut Vec<u8>) {
 	output.write_to(&mut Cursor::new(buffer), ImageFormat::Png).unwrap();
 }
 
-pub fn get_tag_string(post: &Post, remove_underscores: bool, escape_parentheses: bool) -> String {
-	let tags = post.tags.iter().join(", ");
+pub fn get_tag_string(post: &Post, settings: &TagSettings) -> String {
+	let categories = settings.ignore_categories.split(',')
+		.map(|str| str.trim())
+		.collect::<HashSet<_>>();
+	
+	let tags = match &post.tags {
+		Tags::All(tags) => tags.iter().join(", "),
+		Tags::Categorized(cats) => cats.iter()
+			.filter(|(category, _)| !categories.contains(category.to_lowercase().as_str()))
+			.flat_map(|(_, tags)| tags).join(", ")
+	};
 
-	let tags = match remove_underscores {
+	let tags = match settings.remove_underscores {
 		false => tags,
 		true => tags.replace('_', " "),
 	};
 
-	match escape_parentheses {
+	match settings.escape_parentheses {
 		false => tags,
 		true => tags.replace('(', "\\(").replace(')', "\\)"),
 	}

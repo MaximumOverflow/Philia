@@ -8,13 +8,24 @@ pub const SETTINGS_PATH: &str = "settings.json";
 pub struct Settings {
 	#[serde(skip_serializing, default = "Default::default")]
 	pub show: bool,
+	pub tag_settings: TagSettings,
+	pub image_settings: ImageSettings,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct TagSettings {
 	pub save_tags: bool,
-	pub remove_tag_underscores: bool,
-	pub escape_tag_parentheses: bool,
+	pub remove_underscores: bool,
+	pub escape_parentheses: bool,
+	pub ignore_categories: String,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct ImageSettings {
 	pub apply_letterboxing: bool,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum SettingsMessage {
 	SettingsOpened,
 	SettingsClosed,
@@ -22,6 +33,7 @@ pub enum SettingsMessage {
 	ToggleRemoveUnderscores(bool),
 	ToggleEscapeParentheses(bool),
 	ToggleApplyLetterboxing(bool),
+	IgnoredCategoriesChanged(String),
 }
 
 impl From<SettingsMessage> for Message {
@@ -45,19 +57,23 @@ impl SettingsMessage {
 			}
 
 			SettingsMessage::ToggleSaveTags(value) => {
-				context.settings.save_tags = value;
+				context.settings.tag_settings.save_tags = value;
 			}
 
 			SettingsMessage::ToggleRemoveUnderscores(value) => {
-				context.settings.remove_tag_underscores = value;
+				context.settings.tag_settings.remove_underscores = value;
 			}
 
 			SettingsMessage::ToggleEscapeParentheses(value) => {
-				context.settings.escape_tag_parentheses = value;
+				context.settings.tag_settings.escape_parentheses = value;
 			}
 
 			SettingsMessage::ToggleApplyLetterboxing(value) => {
-				context.settings.apply_letterboxing = value;
+				context.settings.image_settings.apply_letterboxing = value;
+			}
+			
+			SettingsMessage::IgnoredCategoriesChanged(value) => {
+				context.settings.tag_settings.ignore_categories = value.to_lowercase();
 			}
 		}
 

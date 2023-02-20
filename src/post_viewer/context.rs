@@ -106,12 +106,7 @@ impl PostViewerMessage {
 					return Command::none()
 				};
 
-				let tags = get_tag_string(
-					&post.info,
-					context.settings.remove_tag_underscores,
-					context.settings.escape_tag_parentheses,
-				);
-
+				let tags = get_tag_string(&post.info, &context.settings.tag_settings);
 				iced::clipboard::write(tags)
 			}
 
@@ -141,18 +136,14 @@ impl PostViewerMessage {
 
 				let mut bytes = bytes.to_vec();
 
-				if context.settings.apply_letterboxing {
+				if context.settings.image_settings.apply_letterboxing {
 					apply_letterboxing(&mut bytes)
 				}
 
-				if context.settings.save_tags {
+				if context.settings.tag_settings.save_tags {
 					if let Some(Some(name)) = path.file_stem().map(|e| e.to_str()) {
 						let path = path.parent().unwrap_or(Path::new("")).join(format!("{}.txt", name));
-						let tags = get_tag_string(
-							&post.info,
-							context.settings.remove_tag_underscores,
-							context.settings.escape_tag_parentheses,
-						);
+						let tags = get_tag_string(&post.info, &context.settings.tag_settings);
 						let _ = std::fs::write(path, tags);
 					}
 				}

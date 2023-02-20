@@ -32,27 +32,64 @@ impl container::StyleSheet for Theme {
 	}
 }
 
-#[derive(Default, Copy, Clone)]
-pub struct TextInputStyle;
+#[derive(Default, Debug, Copy, Clone)]
+pub enum TextInputStyle {
+	#[default]
+	Default,
+	Error,
+	Round
+}
 
 impl text_input::StyleSheet for Theme {
 	type Style = TextInputStyle;
 
-	fn active(&self, _: &Self::Style) -> text_input::Appearance {
-		text_input::Appearance {
-			border_radius: 0.0,
-			border_width: 0.0,
-			border_color: Default::default(),
-			background: color!(0x2b2d30).into(),
+	fn active(&self, style: &Self::Style) -> text_input::Appearance {
+		match style {
+			TextInputStyle::Default => text_input::Appearance {
+				border_radius: 0.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				background: color!(0x2b2d30).into(),
+			},
+			
+			TextInputStyle::Error => text_input::Appearance {
+				border_radius: 0.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				background: color!(0xAA3939).into(),
+			},
+			
+			TextInputStyle::Round => text_input::Appearance {
+				border_radius: 100.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				background: color!(0x366ace).into(),
+			}
 		}
 	}
 
-	fn focused(&self, _: &Self::Style) -> text_input::Appearance {
-		text_input::Appearance {
-			border_radius: 2.0,
-			border_width: 1.0,
-			background: color!(0x2b2d30).into(),
-			border_color: color!(0x3574f0),
+	fn focused(&self, style: &Self::Style) -> text_input::Appearance {
+		match style {
+			TextInputStyle::Default => text_input::Appearance {
+				border_radius: 2.0,
+				border_width: 1.0,
+				background: color!(0x2b2d30).into(),
+				border_color: color!(0x3574f0),
+			},
+			
+			TextInputStyle::Error => text_input::Appearance {
+				border_radius: 2.0,
+				border_width: 3.0,
+				background: color!(0x2b2d30).into(),
+				border_color: color!(0xAA3939),
+			},
+
+			TextInputStyle::Round => text_input::Appearance {
+				border_radius: 100.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				background: color!(0x305fb9).into(),
+			}
 		}
 	}
 
