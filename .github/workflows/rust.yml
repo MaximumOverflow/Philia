@@ -41,6 +41,7 @@ jobs:
           mkdir x86_64-unknown-linux-gnu
           cp target/x86_64-unknown-linux-gnu/production/philia_gui x86_64-unknown-linux-gnu/Philia.bin
           cp -r sources x86_64-unknown-linux-gnu/sources
+          chmod +x x86_64-unknown-linux-gnu/Philia.bin
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -80,14 +81,15 @@ jobs:
       - name: Tree
         run: tree
 
-#      - name: Prepare artifacts
-#        run: |
-#          mkdir x86_64-pc-windows-gnu
-#          copy /y target\x86_64-pc-windows-gnu\production\philia_gui.exe x86_64-pc-windows-gnu\Philia.exe
-#          echo d | xcopy sources x86_64-pc-windows-gnu\sources /s /-y
-#
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: x86_64-pc-windows-gnu.zip
-#          path: x86_64-pc-windows-gnu
+      - name: Prepare artifacts
+        continue-on-error: true
+        run: |
+          mkdir x86_64-pc-windows-gnu
+          copy /y target\x86_64-pc-windows-gnu\production\philia_gui.exe x86_64-pc-windows-gnu\Philia.exe
+          echo d | xcopy sources x86_64-pc-windows-gnu\sources /s /-y
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-pc-windows-gnu.zip
+          path: x86_64-pc-windows-gnu
