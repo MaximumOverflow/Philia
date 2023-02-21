@@ -121,12 +121,13 @@ impl PostViewerMessage {
 				let_or_ret!(PostImage::Loaded(handle) = image);
 				let_or_ret!(Data::Bytes(bytes) = handle.data());
 				let_or_ret!(Some(resource_url) = &post.info.resource_url);
-				let_or_ret!(Some(Some(filename)) = Path::new(resource_url).file_name().map(|e| e.to_str()));
 				let_or_ret!(Some(Some(extension)) = Path::new(resource_url).extension().map(|e| e.to_str()));
+				
+				let filename = format!("{}.{}", post.info.id, extension);
 
 				let path = match FileDialog::new()
 					.add_filter("Image format", &[extension])
-					.set_filename(filename)
+					.set_filename(&filename)
 					.show_save_single_file()
 				{
 					Ok(Some(path)) => path,
