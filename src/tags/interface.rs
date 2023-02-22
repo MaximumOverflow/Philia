@@ -167,10 +167,10 @@ pub fn tag_selector(context: &Philia) -> Element {
 
 			let selector: Element = row![search, included, excluded]
 				.padding(Padding {
-					top: 8,
-					right: 8,
-					bottom: 8,
-					left: 8,
+					top: 8.0,
+					right: 8.0,
+					bottom: 8.0,
+					left: 8.0,
 				})
 				.spacing(8)
 				.into();

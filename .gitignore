@@ -1,3 +1,5 @@
 target/
 .idea/
+cache/
 Cargo.lock
+settings.json

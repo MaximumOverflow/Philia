@@ -1,7 +1,8 @@
-use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip, Container};
+use iced::widget::{Scrollable, Text, row, column, Button, PickList, Column, Row, Image, Tooltip, Container, Checkbox};
 use crate::search::{PostPreview, SearchMessage, SearchStatus, Sorting};
 use crate::download::{DownloadContext, DownloadMessage};
 use crate::application::{Element, Message, Philia};
+use iced_aw::{FloatingElement, NumberInput};
 use iced_native::widget::tooltip::Position;
 use crate::post_viewer::PostViewerMessage;
 use iced::{Alignment, Length, Padding};
@@ -10,7 +11,6 @@ use crate::settings::SettingsMessage;
 use std::iter::{repeat, repeat_with};
 use crate::style::ButtonStyle;
 use strum::IntoEnumIterator;
-use iced_aw::NumberInput;
 use std::ops::Deref;
 
 pub fn post_list(context: &Philia) -> Element {
@@ -55,9 +55,19 @@ pub fn post_list(context: &Philia) -> Element {
 
 	let download: Element = match context.download {
 		DownloadContext::Complete if context.search.status == SearchStatus::Complete && client.is_some() => {
-			Button::new(Text::new("Download all"))
-				.on_press(DownloadMessage::DownloadRequested(context.search.results.clone()).into())
-				.into()
+			match context.search.selected.is_empty() {
+				true => {
+					Button::new(Text::new("Download all"))
+						.on_press(DownloadMessage::DownloadRequested(context.search.results.clone()).into())
+						.into()
+				},
+				
+				false => {
+					Button::new(Text::new("Download selected"))
+						.on_press(DownloadMessage::FilteredDownloadRequested.into())
+						.into()
+				},
+			}
 		}
 
 		DownloadContext::Downloading { total, downloaded, .. } => {
@@ -104,7 +114,7 @@ pub fn post_list(context: &Philia) -> Element {
 	]
 	.spacing(8)
 	.align_items(Alignment::Center)
-	.padding(Padding::new(8))
+	.padding(Padding::new(8.0))
 	.into();
 
 	let list: Element = {
@@ -120,7 +130,15 @@ pub fn post_list(context: &Philia) -> Element {
 			let preview: Element = match post.preview.clone() {
 				PostPreview::Loaded(handle) => {
 					column_sizes[smallest] += post.size.1;
-					Image::new(handle).into()
+					let image: Element = Image::new(handle).into();
+					let selected = context.search.selected.contains(&i);
+
+					FloatingElement::new(image, move || {
+						Checkbox::new("", selected, move |v| match v {
+							true => SearchMessage::PostSelected(i).into(),
+							false => SearchMessage::PostDeselected(i).into(),
+						}).into()
+					}).into()
 				}
 
 				PostPreview::Pending => {
@@ -130,8 +148,8 @@ pub fn post_list(context: &Philia) -> Element {
 						Text::new(format!("Loading post\n{}", post.info.id)).horizontal_alignment(Horizontal::Center);
 
 					Container::new(text)
-						.height(Length::Units(420))
-						.width(Length::Units(512))
+						.height(Length::Fixed(420.0))
+						.width(Length::Fixed(512.0))
 						.center_x()
 						.center_y()
 						.into()
@@ -144,8 +162,8 @@ pub fn post_list(context: &Philia) -> Element {
 						.horizontal_alignment(Horizontal::Center);
 
 					Container::new(text)
-						.height(Length::Units(420))
-						.width(Length::Units(512))
+						.height(Length::Fixed(420.0))
+						.width(Length::Fixed(512.0))
 						.center_x()
 						.center_y()
 						.into()

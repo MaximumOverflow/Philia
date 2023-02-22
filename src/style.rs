@@ -342,6 +342,57 @@ impl toggler::StyleSheet for Theme {
 }
 
 #[derive(Default, Copy, Clone)]
+pub struct CheckboxStyle;
+
+impl checkbox::StyleSheet for Theme {
+	type Style = CheckboxStyle;
+
+	fn active(&self, _: &Self::Style, is_checked: bool) -> checkbox::Appearance {
+		match is_checked {
+			true => checkbox::Appearance {
+				background: color!(0x366ace).into(),
+				icon_color: color!(0xffffff),
+				border_radius: 4.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				text_color: None,
+			},
+			
+			false => checkbox::Appearance {
+				background: color!(0x2b2d30).into(),
+				icon_color: color!(0xffffff),
+				border_radius: 4.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				text_color: None,
+			}
+		}
+	}
+
+	fn hovered(&self, _: &Self::Style, is_checked: bool) -> checkbox::Appearance {
+		match is_checked {
+			true => checkbox::Appearance {
+				background: color!(0x396fd8).into(),
+				icon_color: color!(0xffffff),
+				border_radius: 4.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				text_color: None,
+			},
+
+			false => checkbox::Appearance {
+				background: color!(0x505050).into(),
+				icon_color: color!(0xffffff),
+				border_radius: 4.0,
+				border_width: 0.0,
+				border_color: Default::default(),
+				text_color: None,
+			}
+		}
+	}
+}
+
+#[derive(Default, Copy, Clone)]
 pub struct NumberInputStyle;
 
 impl number_input::StyleSheet for Theme {

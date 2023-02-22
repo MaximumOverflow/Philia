@@ -111,9 +111,10 @@ pub fn post_viewer(search: &SearchContext, post: &SearchResult, post_image: Post
 
 	let content = Row::with_children(vec![image, right_panel]).padding(4).spacing(16);
 
-	let card = Card::new(Text::new("Post post_viewer"), content).on_close(PostViewerMessage::Closed.into());
+	let title = format!("Post {}", post.info.id);
+	let card = Card::new(Text::new(title), content).on_close(PostViewerMessage::Closed.into());
 
-	Column::new().push(card).padding(Padding::new(100)).into()
+	Column::new().push(card).padding(Padding::new(100.0)).into()
 }
 
 fn make_tag_buttons<'l>(tags: impl Iterator<Item=&'l str>, search: &SearchContext) -> Vec<Element<'static>> {

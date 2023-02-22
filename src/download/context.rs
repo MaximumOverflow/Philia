@@ -2,15 +2,15 @@ use std::collections::HashSet;
 use image::{GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use crate::application::{Message, Philia};
 use std::time::{Duration, SystemTime};
+use crate::settings::TagSettings;
 use crate::search::SearchResult;
+use philia::data::{Post, Tags};
 use native_dialog::FileDialog;
 use std::sync::{Arc, Mutex};
 use iced_native::Command;
 use itertools::Itertools;
-use philia::data::{Post, Tags};
 use std::io::Cursor;
 use std::path::Path;
-use crate::settings::TagSettings;
 
 #[derive(Default)]
 pub enum DownloadContext {
@@ -27,6 +27,7 @@ pub enum DownloadContext {
 pub enum DownloadMessage {
 	DownloadCanceled,
 	ImageDownloaded(bool),
+	FilteredDownloadRequested,
 	DownloadRequested(Arc<Vec<SearchResult>>),
 }
 
@@ -47,6 +48,14 @@ impl DownloadMessage {
 				}
 
 				Command::none()
+			}
+			
+			DownloadMessage::FilteredDownloadRequested => {
+				let posts = context.search.selected.iter().map(|i| {
+					context.search.results[*i].clone()
+				}).collect();
+				
+				DownloadMessage::DownloadRequested(Arc::new(posts)).handle(context)
 			}
 
 			DownloadMessage::DownloadRequested(posts) => {

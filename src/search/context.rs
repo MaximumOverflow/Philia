@@ -21,6 +21,7 @@ pub struct SearchContext {
 	pub status: SearchStatus,
 	pub include: HashSet<String>,
 	pub exclude: HashSet<String>,
+	pub selected: HashSet<usize>,
 	pub results: Arc<Vec<SearchResult>>,
 	pub timestamp: Arc<Mutex<SystemTime>>,
 }
@@ -35,6 +36,7 @@ impl Default for SearchContext {
 			status: Default::default(),
 			include: Default::default(),
 			exclude: Default::default(),
+			selected: Default::default(),
 			timestamp: Arc::new(Mutex::new(SystemTime::UNIX_EPOCH)),
 		}
 	}
@@ -90,6 +92,8 @@ pub enum SearchMessage {
 	SearchCanceled,
 	SearchRequested,
 	PageChanged(usize),
+	PostSelected(usize),
+	PostDeselected(usize),
 	PerPageChanged(usize),
 	SortingChanged(Sorting),
 	SearchReturned(Vec<Post>),
@@ -117,6 +121,16 @@ impl SearchMessage {
 
 			SearchMessage::SortingChanged(value) => {
 				context.search.sorting = value;
+				Command::none()
+			}
+			
+			SearchMessage::PostSelected(index) => {
+				context.search.selected.insert(index);
+				Command::none()
+			}
+
+			SearchMessage::PostDeselected(index) => {
+				context.search.selected.remove(&index);
 				Command::none()
 			}
 
@@ -265,6 +279,8 @@ impl SearchMessage {
 				};
 
 				let timestamp = SystemTime::now();
+				
+				context.search.selected.clear();
 				context.search.results = Arc::new(vec![]);
 				context.search.status = SearchStatus::Searching;
 				*context.search.timestamp.lock().unwrap() = timestamp;

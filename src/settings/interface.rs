@@ -1,8 +1,9 @@
 use crate::settings::{Settings, SettingsMessage};
-use iced::widget::{Toggler, Column, TextInput};
+use iced::widget::{Toggler, Column, TextInput, Row, Text};
 use crate::application::Element;
 use iced_aw::Card;
 use iced::Padding;
+use iced_native::Alignment;
 
 pub fn settings(settings: &Settings) -> Element {
 	let tag_settings = &settings.tag_settings;
@@ -26,15 +27,18 @@ pub fn settings(settings: &Settings) -> Element {
 					SettingsMessage::ToggleEscapeParentheses(value).into()
 				}).into(),
 
-				TextInput::new("Ignore categories", &tag_settings.ignore_categories, |value| {
-					SettingsMessage::IgnoredCategoriesChanged(value).into()
-				}).into(),
+				Row::with_children(vec![
+					Text::new("Ignored categories").into(),
+					TextInput::new("", &tag_settings.ignore_categories, |value| {
+						SettingsMessage::IgnoredCategoriesChanged(value).into()
+					}).into()
+				]).spacing(8).align_items(Alignment::Center).into(),
 			])
 			.padding(Padding {
-				top: 0,
-				right: 0,
-				bottom: 8,
-				left: 16,
+				top: 0.0,
+				right: 0.0,
+				bottom: 8.0,
+				left: 16.0,
 			})
 			.spacing(4)
 			.into(),
@@ -54,6 +58,6 @@ pub fn settings(settings: &Settings) -> Element {
 
 	Card::new("Settings", content)
 		.on_close(SettingsMessage::SettingsClosed.into())
-		.max_width(512)
+		.max_width(512.0)
 		.into()
 }
