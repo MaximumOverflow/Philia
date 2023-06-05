@@ -7,8 +7,8 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "Philia-GUI",
-    "version": "0.0.0"
+    "productName": "Philia GUI",
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {
@@ -24,6 +24,10 @@
         "all": false,
         "open": true, 
         "save": true
+      },
+      "fs": {
+        "all": false,
+        "writeFile": true
       }
     },
     "bundle": {
@@ -41,7 +45,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.maximumoverflow.philia",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -50,7 +54,9 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": [],
+      "resources": [
+        "sources/*"
+      ],
       "shortDescription": "",
       "targets": "all",
       "windows": {
@@ -73,7 +79,7 @@
         "minWidth": 900,
         "minHeight": 600,
         "resizable": true,
-        "title": "Philia-GUI"
+        "title": "Philia"
       }
     ]
   }

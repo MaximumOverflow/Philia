@@ -10,6 +10,7 @@
       "hash": "hash",
       "score": "score",
       "resource_url": "file_url",
+      "preview_url": "preview_url",
       "tags": {
         "All": {
           "key": "tags",
@@ -18,11 +19,11 @@
       },
       "rating": "rating",
       "rating_map": {
+        "questionable": "Questionable",
         "general": "General",
         "safe": "Safe",
-        "explicit": "Explicit",
         "sensitive": "Sensitive",
-        "questionable": "Questionable"
+        "explicit": "Explicit"
       }
     },
     "parameters": {
@@ -31,9 +32,9 @@
       "limit": "limit"
     },
     "order": {
-      "LeastLiked": "sort:score:asc",
-      "Newest": "sort:id:desc",
       "Oldest": "sort:id:asc",
+      "Newest": "sort:id:desc",
+      "LeastLiked": "sort:score:asc",
       "MostLiked": "sort:score:desc"
     }
   },

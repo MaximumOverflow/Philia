@@ -1,0 +1,11 @@
+edition = "2021"
+chain_width = 75
+max_width = 100
+hard_tabs = true
+newline_style = "Unix"
+reorder_imports = false
+reorder_modules = false
+use_try_shorthand = true
+fn_params_layout = "Compressed"
+use_field_init_shorthand = true
+match_block_trailing_comma = true

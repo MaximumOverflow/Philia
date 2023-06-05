@@ -10,6 +10,7 @@
       "hash": "md5",
       "score": "score",
       "resource_url": "file_url",
+      "preview_url": "preview_url",
       "tags": {
         "All": {
           "key": "tags",
@@ -18,11 +19,11 @@
       },
       "rating": "rating",
       "rating_map": {
+        "sensitive": "Sensitive",
+        "questionable": "Questionable",
         "safe": "Safe",
         "explicit": "Explicit",
-        "sensitive": "Sensitive",
-        "general": "General",
-        "questionable": "Questionable"
+        "general": "General"
       }
     },
     "parameters": {
@@ -32,8 +33,8 @@
     },
     "order": {
       "LeastLiked": "sort:score:asc",
-      "Oldest": "sort:id:asc",
       "Newest": "sort:id:desc",
+      "Oldest": "sort:id:asc",
       "MostLiked": "sort:score:desc"
     }
   },
