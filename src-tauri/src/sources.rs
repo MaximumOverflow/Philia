@@ -125,8 +125,6 @@ pub fn get_sources_state(handle: &AppHandle) -> (State<'_, SourcesState>, bool) 
 }
 
 fn fetch_sources() -> HashMap<String, (Client, Option<HashSet<String>>)> {
-	println!("Fetching sources...");
-	
 	let _ = std::fs::create_dir_all("./cache");
 	let _ = std::fs::create_dir_all("./sources");
 	let Ok(entries) = std::fs::read_dir("./sources") else {

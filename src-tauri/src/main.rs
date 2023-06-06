@@ -3,7 +3,6 @@
 	windows_subsystem = "windows"
 )]
 
-use tauri::Manager;
 use crate::settings::{Settings, SettingsState};
 
 mod sources;
@@ -40,6 +39,7 @@ fn main() {
 		.setup(|_handle| {
 			#[cfg(debug_assertions)]
 			{
+				use tauri::Manager;
 				let window = _handle.get_window("main").unwrap();
 				window.open_devtools();
 			}

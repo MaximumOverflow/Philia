@@ -106,7 +106,7 @@ export function Datasets(props: Props): ReactElement {
                     }
                 </DialogTitle>
                 <DialogContent>
-                    This operation cannot be reversed.
+                    This operation cannot be undone.
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => set_to_delete(-1)}>Cancel</Button>

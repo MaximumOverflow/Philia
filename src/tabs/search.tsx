@@ -207,7 +207,11 @@ export function SearchView(props: ViewProps): ReactElement {
             post_view_media = (
                 <TransformWrapper maxScale={3}>
                     <TransformComponent>
-                        <img src={post_view?.resource_url} alt={post_view?.id as any} style={IMAGE_VIEW_STYLE}/>
+                        <img 
+                            src={post_view?.resource_url} 
+                            alt={post_view?.id as any} 
+                            style={IMAGE_VIEW_STYLE}
+                        />
                     </TransformComponent>
                 </TransformWrapper>
             );
@@ -336,6 +340,12 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                     onMouseDown={e => {
                         if(e.ctrlKey) toggle_selection(!selected);
                         else set_post_view(post);
+                    }}
+                    onError={e => {
+                        if(!props.full_res_search) {
+                            e.currentTarget.src = post.resource_url;
+                            e.currentTarget.onerror = null;
+                        }
                     }}
                 />
 

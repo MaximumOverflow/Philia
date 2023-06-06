@@ -2205,6 +2205,7 @@ dependencies = [
 name = "philia_gui"
 version = "1.0.0"
 dependencies = [
+ "dunce",
  "image",
  "itertools",
  "lazy_static",

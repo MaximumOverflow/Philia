@@ -38,16 +38,20 @@ impl Default for Settings {
 			search_image_list_columns: 6,
 			full_resolution_preview: false,
 			
-			download_folder: 'block: {
-				let mut path = PathBuf::from("./downloads");
-				if let Ok(_) = std::fs::create_dir_all(&path) {
-					break 'block path;
+			download_folder: {
+				fn get_local_download_dir() -> Result<PathBuf, std::io::Error> {
+					std::fs::create_dir_all("./downloads")?;
+					dunce::canonicalize("./downloads")
 				}
-
-				path = download_dir().expect("Missing download dir").join("Philia");
-				std::fs::create_dir_all(&path).expect("Could not create download dir");
-
-				path
+				
+				match get_local_download_dir() {
+					Ok(path) => path,
+					Err(_) => {
+						let path = download_dir().expect("Missing download dir").join("Philia");
+						std::fs::create_dir_all(&path).expect("Could not create download dir");
+						path
+					}
+				}
 			},
 		}
 	}
