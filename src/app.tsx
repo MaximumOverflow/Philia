@@ -2,12 +2,12 @@ import {Box, createTheme, CssBaseline, ThemeProvider,} from "@mui/material";
 import {Settings, SETTINGS_PLACEHOLDER} from "./tabs/settings";
 import {invoke} from "@tauri-apps/api";
 import React, {useEffect, useState} from "react";
-import {Post, Search} from "./tabs/search";
+import {Post, Search, Source} from "./tabs/search";
 import {Drawer} from "./drawer";
 import {AppBar} from "./appbar";
 import {Dataset, Datasets} from "./tabs/datasets";
 
-const SOURCES = await invoke<string[]>("get_available_sources");
+const SOURCES = await invoke<Source[]>("get_available_sources");
 
 export default function App() {
     const [tab, set_tab] = useState("Search");

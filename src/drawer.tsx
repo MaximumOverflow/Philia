@@ -8,13 +8,13 @@ import {
     ListItemIcon, ListItemText,
     styled
 } from "@mui/material";
-import {ChevronRight, Collections, Dataset as DatasetIcon, Search, Settings, Source, Tag} from "@mui/icons-material";
-import {Post} from "./tabs/search";
+import {ChevronRight, Collections, Dataset as DatasetIcon, Search, Settings, Source as SourceIcon} from "@mui/icons-material";
+import {Post, Source} from "./tabs/search";
 import {Dataset} from "./tabs/datasets";
 
 interface Props {
     open: boolean,
-    sources: string[]
+    sources: Source[]
     datasets: Dataset[],
     images: [string, Post][],
     set_tab: (tab: string) => void,
@@ -69,7 +69,7 @@ export function Drawer(props: Props): ReactElement {
                 </ListItemButton>
 
                 <ListItemButton onClick={() => props.set_tab("Sources")} disabled>
-                    <ListItemIcon><Source color="primary"/></ListItemIcon>
+                    <ListItemIcon><SourceIcon color="primary"/></ListItemIcon>
                     <ListItemText primary="Manage sources" secondary={`Installed sources: ${props.sources.length}`}/>
                 </ListItemButton>
 

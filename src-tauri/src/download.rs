@@ -1,6 +1,6 @@
 use std::fs::File;
 use image::ImageFormat;
-use crate::sources::SOURCES;
+use crate::sources::{get_sources_state};
 use philia::prelude::Post;
 use std::io::{BufWriter, Cursor};
 use std::sync::{Arc, Mutex};
@@ -13,11 +13,18 @@ pub async fn download_posts(
 	source: String, posts: Vec<Post>, handle: AppHandle,
 	download_settings: State<'_, SettingsState>,
 ) -> Result<Vec<String>, String> {
-	let Some(source) = SOURCES.get(&source) else {
-		eprintln!("Source {source} not found");
-		return Err("Source not found".into());
-	};
+	let source = {
+		let (sources, _) = get_sources_state(&handle).await;
+		let sources = sources.lock().unwrap();
 
+		let Some(source) = sources.get(&source) else {
+			eprintln!("Source {source} not found");
+			return Err("Source not found".into());
+		};
+
+		Arc::new(source.clone())
+	};
+	
 	let download_folder = {
 		let settings = download_settings.lock().unwrap();
 		settings.download_folder.clone()
@@ -29,6 +36,7 @@ pub async fn download_posts(
 	let promises: Vec<_> = posts
 		.into_iter()
 		.map(move |post| {
+			let source = source.clone();
 			let handle = handle.clone();
 			let progress = progress.clone();
 			let download_folder = download_folder.clone();

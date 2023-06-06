@@ -16,9 +16,22 @@ import {invoke} from "@tauri-apps/api";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {listen} from "@tauri-apps/api/event";
 import {Dataset} from "./datasets";
+import {writeTextFile} from "@tauri-apps/api/fs";
+
+export interface Source {
+    name: string,
+    search: any | null,
+    tag_list: any | null,
+}
+
+const EMPTY_SOURCE: Source = {
+    name: "",
+    search: null,
+    tag_list: null,
+}
 
 interface Props {
-    sources: string[],
+    sources: Source[],
     
     datasets: Dataset[],
     set_datasets: (datasets: Dataset[]) => void,
@@ -50,20 +63,29 @@ export function Search(props: Props): ReactElement[] {
     const [per_page, set_per_page] = useState(32);
 
     const [searching, set_searching] = useState(false);
-    const [source, set_source] = useState(props.sources[0]);
+    const [source, set_source] = useState(props.sources[0] || EMPTY_SOURCE);
     const [results, set_results] = useState([] as Post[]);
     const [tags, set_tags] = useState(undefined as (string[] | null | undefined));
     
     useEffect(() => {
-        invoke<string[] | null>("get_source_tags", {source})
-            .then(result => set_tags(result));
+        if(source === EMPTY_SOURCE) {
+            set_tags([]);
+        } else {
+            invoke<string[] | null>("get_source_tags", {source: source.name})
+                .then(result => set_tags(result));
+        }
     }, [source])
+    
+    useEffect(() => {
+        if(source === EMPTY_SOURCE || tags === undefined || tags === null) return;
+        writeTextFile(`./Cache/${source.name}_tags.json`, JSON.stringify(tags, null, 4)).catch(console.error);
+    }, [tags])
 
     const search = async () => {
         try {
             set_searching(true);
             const results = await invoke<Post[]>("search", {
-                source: source,
+                source: source.name,
                 page: page,
                 limit: per_page,
                 order: order,
@@ -74,7 +96,9 @@ export function Search(props: Props): ReactElement[] {
             set_searching(false);
             return results;
         } catch (e) {
-            console.error(e)
+            console.error(e);
+            set_results([]);
+            set_searching(false);
         }
     };
     
@@ -94,13 +118,14 @@ export function Search(props: Props): ReactElement[] {
         <SearchControls 
             selected={selected}
             set_images={props.set_images}
+            tags={tags} set_tags={set_tags}
             page={page} set_page={set_page}
             order={order} set_order={set_order}
             per_page={per_page} set_per_page={set_per_page}
             search={search} results={results} searching={searching}
             source={source} set_source={set_source} sources={props.sources}
             datasets={props.datasets} set_datasets={props.set_datasets}
-        />
+        />,
     ];
 }
 
@@ -374,13 +399,13 @@ function PostViewTags(tags: string[], props: ViewProps): ReactElement {
 }
 
 interface ControlsProps {
-    sources: string[],
+    sources: Source[],
     
     datasets: Dataset[],
     set_datasets: (datasets: Dataset[]) => void,
     
-    source: string,
-    set_source: (source: string) => void,
+    source: Source,
+    set_source: (source: Source) => void,
     set_images: (images: [string, Post][]) => void,
 
     page: number,
@@ -394,6 +419,9 @@ interface ControlsProps {
 
     results: Post[],
     selected: number[],
+
+    tags: string[] | null | undefined,
+    set_tags: (tags: string[] | null) => void
 
     searching: boolean,
     search: () => Promise<any[] | undefined>,
@@ -436,10 +464,10 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 label="Source" 
                 color="primary"
                 variant="standard"
-                value={props.source}
-                onChange={(e) => props.set_source(e.target.value)}
+                value={props.sources.indexOf(props.source)}
+                onChange={(e) => props.set_source(props.sources[+e.target.value])}
             >
-                {props.sources.map((s, i) => <MenuItem key={i} value={s}>{s}</MenuItem>)}
+                {props.sources.map((s, i) => <MenuItem key={i} value={i}>{s.name}</MenuItem>)}
             </TextField>
             
             <TextField
@@ -487,6 +515,7 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 datasets={props.datasets} set_datasets={props.set_datasets}
                 set_images={props.set_images}
             />
+            {NoTagsDialog(props.source, props.tags, props.set_tags)}
         </Stack>
     );
 }
@@ -607,6 +636,73 @@ function DownloadDialog(props: DialogProps): ReactElement {
                 <DialogActions>
                     <Button onClick={download}>Download</Button>
                     <Button onClick={props.close}>Cancel</Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
+}
+
+function NoTagsDialog(
+    source: Source,
+    tags: string[] | null | undefined, 
+    set_tags: (tags: string[] | null) => void
+): ReactElement {
+    const use_empty = () => {
+        set_tags([]);
+    };
+    
+    const [fetching, set_fetching] = useState(-1);
+    
+    const fetch = async () => {
+        const unlisten = await listen<number>("fetch_source_tags_count", e => {
+            set_fetching(e.payload);
+        });
+        
+        try {
+            set_fetching(0);
+            const tags = await invoke<string[]>("fetch_source_tags", {source: source.name});
+            set_tags(tags);
+        }
+        finally {
+            set_fetching(-1);
+            unlisten();
+        }
+    }
+    
+    if(fetching >= 0) {
+        return (
+            <Dialog open={true} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    Fetching tags...
+                </DialogTitle>
+                <DialogContent>
+                    <Stack spacing={1}>
+                        <Typography>
+                            Total tags: {fetching}
+                        </Typography>
+                        <LinearProgress/>
+                    </Stack>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+    else {
+        return (
+            <Dialog open={tags === null}>
+                <DialogTitle>
+                    Source Setup
+                </DialogTitle>
+                <DialogContent>
+                    <Typography>The currently selected source has no associated tags.</Typography>
+                    <Typography>Would you like to fetch the list of available tags?</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button disabled={source.tag_list === null} onClick={fetch}>
+                        Fetch
+                    </Button>
+                    <Button onClick={use_empty}>
+                        Use empty list
+                    </Button>
                 </DialogActions>
             </Dialog>
         );

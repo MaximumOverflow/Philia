@@ -13,15 +13,15 @@ mod datasets;
 mod images;
 
 fn main() {
-	#[cfg(debug_assertions)]
-	if std::env::var("TAURI_DEBUG").is_ok() {
-		std::env::set_current_dir("../work_dir/").unwrap();
+	if let Ok(value) = std::env::var("PHILIA_WORK_DIR") {
+		std::env::set_current_dir(value).expect("Invalid work directory.");
 	}
 
 	tauri::Builder::default()
 		.manage(SettingsState::new(Settings::load().unwrap_or_default()))
 		.invoke_handler(tauri::generate_handler![
 			sources::get_available_sources,
+			sources::fetch_source_tags,
 			sources::get_source_tags,
 			sources::search,
 			download::download_posts,
@@ -37,10 +37,10 @@ fn main() {
 			settings::get_settings,
 			settings::set_settings,
 		])
-		.setup(|handle| {
+		.setup(|_handle| {
 			#[cfg(debug_assertions)]
 			{
-				let window = handle.get_window("main").unwrap();
+				let window = _handle.get_window("main").unwrap();
 				window.open_devtools();
 			}
 

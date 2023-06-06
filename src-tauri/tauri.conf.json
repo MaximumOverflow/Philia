@@ -27,7 +27,8 @@
       },
       "fs": {
         "all": false,
-        "writeFile": true
+        "writeFile": true,
+        "scope": ["**"]
       },
       "protocol": {
         "asset": true,

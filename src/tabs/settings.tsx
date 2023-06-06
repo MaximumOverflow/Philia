@@ -1,26 +1,14 @@
-import React, {ReactElement, useEffect, useRef, useState} from "react";
+import React, {ReactElement, useRef} from "react";
 import {
-    Collapse,
     List,
     ListItem,
     ListItemButton,
     ListItemIcon,
-    ListItemText, ListSubheader, MenuItem, PaletteMode, Stack, Switch, TextField, Typography
+    ListItemText, ListSubheader, Stack, Switch, TextField, Typography
 } from "@mui/material";
-import {
-    DarkMode,
-    DataArray,
-    DoNotDisturb,
-    ExpandLess,
-    ExpandMore, Folder, FormatListNumbered, Image,
-    Remove,
-    Save,
-    Source,
-    Tag, ViewColumn
-} from "@mui/icons-material";
-import {downloadDir} from "@tauri-apps/api/path";
+import {DarkMode, Folder, FormatListNumbered, Image, ViewColumn} from "@mui/icons-material";
+import {Source} from "./search"
 import {open} from "@tauri-apps/api/dialog";
-import {invoke} from "@tauri-apps/api";
 
 export interface Settings {
     dark_mode: boolean,
@@ -43,7 +31,7 @@ export const SETTINGS_PLACEHOLDER: Settings = {
 }
 
 interface Props {
-    sources: string[],
+    sources: Source[],
     settings: Settings,
     set_settings: (settings: Settings) => void,
 }
