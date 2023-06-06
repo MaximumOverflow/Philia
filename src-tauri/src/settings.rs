@@ -39,7 +39,7 @@ impl Default for Settings {
 			full_resolution_preview: false,
 			
 			download_folder: 'block: {
-				let mut path = PathBuf::from("./Downloads");
+				let mut path = PathBuf::from("./downloads");
 				if let Ok(_) = std::fs::create_dir_all(&path) {
 					break 'block path;
 				}

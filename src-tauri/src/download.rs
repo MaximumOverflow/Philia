@@ -1,30 +1,15 @@
-use std::fs::File;
-use image::ImageFormat;
-use crate::sources::{get_sources_state};
-use philia::prelude::Post;
-use std::io::{BufWriter, Cursor};
-use std::sync::{Arc, Mutex};
+use philia::client::{DEFAULT_USER_AGENT, make_async_http_client};
 use png::{BitDepth, ColorType, Compression, Encoder};
 use tauri::{AppHandle, Manager, State};
 use crate::settings::{SettingsState};
+use std::io::{BufWriter, Cursor};
+use std::sync::{Arc, Mutex};
+use philia::prelude::Post;
+use image::ImageFormat;
+use std::fs::File;
 
 #[tauri::command]
-pub async fn download_posts(
-	source: String, posts: Vec<Post>, handle: AppHandle,
-	download_settings: State<'_, SettingsState>,
-) -> Result<Vec<String>, String> {
-	let source = {
-		let (sources, _) = get_sources_state(&handle).await;
-		let sources = sources.lock().unwrap();
-
-		let Some(source) = sources.get(&source) else {
-			eprintln!("Source {source} not found");
-			return Err("Source not found".into());
-		};
-
-		Arc::new(source.clone())
-	};
-	
+pub async fn download_posts(posts: Vec<Post>, handle: AppHandle, download_settings: State<'_, SettingsState>) -> Result<Vec<String>, String> {
 	let download_folder = {
 		let settings = download_settings.lock().unwrap();
 		settings.download_folder.clone()
@@ -36,7 +21,6 @@ pub async fn download_posts(
 	let promises: Vec<_> = posts
 		.into_iter()
 		.map(move |post| {
-			let source = source.clone();
 			let handle = handle.clone();
 			let progress = progress.clone();
 			let download_folder = download_folder.clone();
@@ -50,6 +34,8 @@ pub async fn download_posts(
 						return $val;
 					}};
 				}
+				
+				let client = make_async_http_client(DEFAULT_USER_AGENT).unwrap();
 
 				let filename = format!("{}_{}.png", post.source, post.id);
 				let filepath = download_folder.join(filename);
@@ -57,15 +43,30 @@ pub async fn download_posts(
 					inc_ret!(Err("File exists"));
 				}
 
-				match post.resource_url.as_ref().map(String::as_str) {
-					Some("gif") | Some("mp4") | Some("ogg") | Some("flv") | Some("webm") => {
-						inc_ret!(Err("Unsupported file type"))
-					},
-					_ => {},
+				let url = match post.resource_url.as_ref().map(String::as_str) {
+					Some(url) => url,
+					None => inc_ret!(Err("Missing resource url")),
+				};
+				
+				if let Some(dot) = url.rfind('.') {
+					match &url[dot + 1..] {
+						"mp4" | "flv" | "ogg" | "webm" | "gif" => {
+							inc_ret!(Err("Unsupported file type"));
+						}
+						_ => {},
+					}
 				}
 
-				let mut data = match source.download_async(&post).await {
-					Ok(data) => data,
+				let response = match client.get(url).send().await {
+					Ok(response) => response,
+					Err(err) => {
+						eprintln!("{:?}", err);
+						inc_ret!(Err("Download failed"));
+					},
+				};
+
+				let mut data = match response.bytes().await {
+					Ok(data) => data.to_vec(),
 					Err(err) => {
 						eprintln!("{:?}", err);
 						inc_ret!(Err("Download failed"));

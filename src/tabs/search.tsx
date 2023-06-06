@@ -20,14 +20,14 @@ import {writeTextFile} from "@tauri-apps/api/fs";
 
 export interface Source {
     name: string,
-    search: any | null,
-    tag_list: any | null,
+    search: boolean,
+    tag_list: boolean,
 }
 
 const EMPTY_SOURCE: Source = {
     name: "",
-    search: null,
-    tag_list: null,
+    search: false,
+    tag_list: false,
 }
 
 interface Props {
@@ -78,7 +78,7 @@ export function Search(props: Props): ReactElement[] {
     
     useEffect(() => {
         if(source === EMPTY_SOURCE || tags === undefined || tags === null) return;
-        writeTextFile(`./Cache/${source.name}_tags.json`, JSON.stringify(tags, null, 4)).catch(console.error);
+        writeTextFile(`./cache/${source.name}_tags.json`, JSON.stringify(tags, null, 4)).catch(console.error);
     }, [tags])
 
     const search = async () => {
@@ -697,7 +697,7 @@ function NoTagsDialog(
                     <Typography>Would you like to fetch the list of available tags?</Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button disabled={source.tag_list === null} onClick={fetch}>
+                    <Button disabled={!source.tag_list} onClick={fetch}>
                         Fetch
                     </Button>
                     <Button onClick={use_empty}>
