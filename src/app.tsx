@@ -1,5 +1,5 @@
-import {Box, createTheme, CssBaseline, PaletteMode, ThemeProvider,} from "@mui/material";
-import {Settings} from "./tabs/settings";
+import {Box, createTheme, CssBaseline, ThemeProvider,} from "@mui/material";
+import {Settings, SETTINGS_PLACEHOLDER} from "./tabs/settings";
 import {invoke} from "@tauri-apps/api";
 import React, {useEffect, useState} from "react";
 import {Post, Search} from "./tabs/search";
@@ -13,27 +13,29 @@ export default function App() {
     const [tab, set_tab] = useState("Search");
     const [open_drawer, set_drawer_open] = useState(false);
     
-    const [theme_accent, set_theme_accent] = useState("#ffb446");
-    const [theme_mode, set_theme_mode] = useState("dark" as PaletteMode);
+    const [settings, set_settings] = useState(SETTINGS_PLACEHOLDER)
     
-    const [search_columns, set_search_columns] = useState(6);
-    const [search_tag_limit, set_search_tag_limit] = useState(10);
-    const [full_res_search, set_full_res_search] = useState(false);
-
     const [datasets, set_datasets] = useState([] as Dataset[]);
+
     const [images, set_images] = useState([] as [string, Post][]);
-
-
+    
     useEffect(() => {
+        invoke<Settings>("get_settings").then(set_settings);
         invoke<Dataset[]>("get_datasets").then(set_datasets);
         invoke<[string, Post][]>("get_images").then(set_images);
     }, []);
+    
+    useEffect(() => {
+        if(settings !== SETTINGS_PLACEHOLDER) {
+            invoke("set_settings", {settings}).catch(console.error);
+        }
+    }, [settings]);
 
     const theme = createTheme({
         palette: {
-            mode: theme_mode,
+            mode: settings.dark_mode ? "dark" : "light",
             primary: {
-                "main": theme_accent
+                "main": settings.accent,
             }
         }
     });
@@ -42,20 +44,16 @@ export default function App() {
         "Search": Search({
             sources: SOURCES, 
             datasets, set_datasets,
-            full_res_search, 
-            columns: search_columns,
-            tag_limit: search_tag_limit,
+            columns: settings.search_image_list_columns,
+            tag_limit: settings.tag_search_result_limit,
+            full_res_search: settings.full_resolution_preview,
             set_images
         }),
         
         "Settings": [
             <Settings
                 sources={SOURCES}
-                theme={theme_mode} set_theme={set_theme_mode} 
-                accent={theme_accent} set_accent={set_theme_accent}
-                search_columns={search_columns} set_search_columns={set_search_columns}
-                full_res_search={full_res_search} set_full_res_search={set_full_res_search}
-                search_tag_limit={search_tag_limit} set_search_tag_limit={set_search_tag_limit}
+                settings={settings} set_settings={set_settings}
             />,
             null,
         ],

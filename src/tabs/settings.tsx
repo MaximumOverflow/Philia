@@ -22,37 +22,44 @@ import {downloadDir} from "@tauri-apps/api/path";
 import {open} from "@tauri-apps/api/dialog";
 import {invoke} from "@tauri-apps/api";
 
+export interface Settings {
+    dark_mode: boolean,
+    accent: string,
+
+    tag_search_result_limit: number,
+    search_image_list_columns: number,
+    full_resolution_preview: boolean,
+
+    download_folder: string,
+}
+
+export const SETTINGS_PLACEHOLDER: Settings = {
+    dark_mode: true,
+    accent: "#ffb446",
+    tag_search_result_limit: 0,
+    search_image_list_columns: 0,
+    full_resolution_preview: false,
+    download_folder: ""
+}
+
 interface Props {
     sources: string[],
-    
-    theme: string,
-    set_theme: (theme: PaletteMode) => void,
-    
-    accent: string,
-    set_accent: (accent: string) => void,
-
-    search_columns: number, 
-    set_search_columns: (cols: number) => void
-
-    search_tag_limit: number,
-    set_search_tag_limit: (tags: number) => void
-
-    full_res_search: boolean,
-    set_full_res_search: (full_res: boolean) => void,
+    settings: Settings,
+    set_settings: (settings: Settings) => void,
 }
 
 export function Settings(props: Props): ReactElement {
     return (
         <Stack paddingTop="1em">
-            <GeneralSettings {...props}/>
-            <SearchSettings {...props}/>
-            <DownloadSettings/>
+            {GeneralSettings(props)}
+            {SearchSettings(props)}
+            {DownloadSettings(props)}
         </Stack>
     );
 }
 
 function GeneralSettings(props: Props): ReactElement {
-    const accent = useRef(props.accent);
+    const accent = useRef(props.settings.accent);
     
     return (
         <List>
@@ -61,8 +68,12 @@ function GeneralSettings(props: Props): ReactElement {
                 <ListItemIcon><DarkMode color="primary"/></ListItemIcon>
                 <ListItemText primary="Dark mode"/>
                 <Switch
-                    checked={props.theme === "dark"}
-                    onChange={(_, checked) => props.set_theme(checked ? "dark" : "light")}
+                    checked={props.settings.dark_mode}
+                    onChange={(_, checked) => {
+                        const settings = {...props.settings};
+                        settings.dark_mode = checked;
+                        props.set_settings(settings);
+                    }}
                 />
             </ListItem>
 
@@ -70,10 +81,14 @@ function GeneralSettings(props: Props): ReactElement {
                 <ListItemIcon><FormatListNumbered color="primary"/></ListItemIcon>
                 <ListItemText primary="Accent"/>
                 <input 
-                    type="color" 
-                    value={props.accent} onChange={(e) => accent.current = e.target.value}
-                    onBlur={() => props.set_accent(accent.current)}
+                    type="color"
                     style={{minWidth: 250, border: "none", borderColor: "transparent"}}
+                    value={props.settings.accent} onChange={(e) => accent.current = e.target.value}
+                    onBlur={() => {
+                        const settings = {...props.settings};
+                        settings.accent = accent.current;
+                        props.set_settings(settings);
+                    }}
                 />
             </ListItem>
         </List>
@@ -102,8 +117,12 @@ function SearchSettings(props: Props): ReactElement {
                 <TextField 
                     type="number" inputProps={{min: 10, max: 200}}
                     size="small" variant="standard" label="Limit"
-                    value={props.search_tag_limit}
-                    onChange={(e) => props.set_search_tag_limit(parseInt(e.target.value) || 10)}
+                    value={props.settings.tag_search_result_limit}
+                    onChange={(e) => {
+                        const settings = {...props.settings};
+                        settings.tag_search_result_limit = parseInt(e.target.value) || 10;
+                        props.set_settings(settings);
+                    }}
                     style={{minWidth: 250}}
                 />
             </ListItem>
@@ -114,8 +133,12 @@ function SearchSettings(props: Props): ReactElement {
                 <TextField
                     type="number" inputProps={{min: 3, max: 10}}
                     size="small" variant="standard" label="Columns"
-                    value={props.search_columns}
-                    onChange={(e) => props.set_search_columns(parseInt(e.target.value) || 6)}
+                    value={props.settings.search_image_list_columns}
+                    onChange={(e) => {
+                        const settings = {...props.settings};
+                        settings.search_image_list_columns = parseInt(e.target.value) || 6;
+                        props.set_settings(settings);
+                    }}
                     style={{minWidth: 250}}
                 />
             </ListItem>
@@ -124,18 +147,19 @@ function SearchSettings(props: Props): ReactElement {
                 <ListItemIcon><Image color="primary"/></ListItemIcon>
                 <ListItemText primary="Full resolution preview"/>
                 <Switch
-                    checked={props.full_res_search}
-                    onChange={(_, checked) => props.set_full_res_search(checked)}
+                    checked={props.settings.full_resolution_preview}
+                    onChange={(_, checked) => {
+                        const settings = {...props.settings};
+                        settings.full_resolution_preview = checked;
+                        props.set_settings(settings);
+                    }}
                 />            
             </ListItem>
         </List>
     );
 }
 
-function DownloadSettings(): ReactElement {
-    const [download_dir, set_download_dir] = useState("");
-    useEffect(() => { invoke<string>("get_download_folder").then(set_download_dir) }, []);
-
+function DownloadSettings(props: Props): ReactElement {
     return (
         <List>
             <ListSubheader>Downloads</ListSubheader>
@@ -146,20 +170,21 @@ function DownloadSettings(): ReactElement {
                         let dir = await open({
                             directory: true,
                             multiple: false,
-                            defaultPath: download_dir,
+                            defaultPath: props.settings.download_folder,
                             title: "Choose download directory"
                         });
 
                         if(dir !== null) {
-                            await invoke("set_download_folder", {folder: dir});
-                            set_download_dir(dir as string);
+                            const settings = {...props.settings};
+                            settings.download_folder = dir as string;
+                            props.set_settings(settings);
                         }
                     } finally {}
                 }}
             >
                 <ListItemIcon><Folder color="primary"/></ListItemIcon>
                 <ListItemText primary="Download folder"/>
-                <Typography>{download_dir}</Typography>
+                <Typography>{props.settings.download_folder}</Typography>
             </ListItemButton>
         </List>
     );

@@ -6,24 +6,38 @@ use std::sync::Mutex;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
+	pub dark_mode: bool,
+	pub accent: String,
+	
+	pub tag_search_result_limit: u32,
+	pub search_image_list_columns: u32,
+	pub full_resolution_preview: bool,
+	
 	pub download_folder: PathBuf,
 }
 
 impl Settings {
 	pub fn load() -> Option<Self> {
-		let json = std::fs::read("settings.json").ok()?;
+		let json = std::fs::read("./settings.json").ok()?;
 		serde_json::from_slice(&json).ok()
 	}
 
 	pub fn save(&self) -> Result<(), std::io::Error> {
 		let json = serde_json::to_string_pretty(self).unwrap();
-		std::fs::write("settings.json", json)
+		std::fs::write("./settings.json", json)
 	}
 }
 
 impl Default for Settings {
 	fn default() -> Self {
 		Self {
+			dark_mode: true,
+			accent: "#ffb446".to_string(),
+			
+			tag_search_result_limit: 10,
+			search_image_list_columns: 6,
+			full_resolution_preview: false,
+			
 			download_folder: 'block: {
 				let mut path = PathBuf::from("./Downloads");
 				if let Ok(_) = std::fs::create_dir_all(&path) {
@@ -40,18 +54,18 @@ impl Default for Settings {
 }
 
 #[tauri::command]
-pub async fn get_download_folder(handle: AppHandle) -> String {
+pub async fn get_settings(handle: AppHandle) -> Settings {
 	let state = handle.state::<SettingsState>();
 	let state = state.lock().unwrap();
-	state.download_folder.to_string_lossy().to_string()
+	state.clone()
 }
 
 #[tauri::command]
-pub async fn set_download_folder(folder: PathBuf, handle: AppHandle) {
+pub async fn set_settings(settings: Settings, handle: AppHandle) {
 	let state = handle.state::<SettingsState>();
 	let mut state = state.lock().unwrap();
-	state.download_folder = folder;
-	let _ = state.save();
+	let _ = settings.save();
+	*state = settings;
 }
 
 pub type SettingsState = Mutex<Settings>;

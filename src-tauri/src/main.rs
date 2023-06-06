@@ -34,8 +34,8 @@ fn main() {
 			images::refresh_images,
 			images::get_image_tags,
 			images::get_image_categories,
-			settings::get_download_folder,
-			settings::set_download_folder,
+			settings::get_settings,
+			settings::set_settings,
 		])
 		.setup(|handle| {
 			#[cfg(debug_assertions)]
