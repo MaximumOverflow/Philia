@@ -21,9 +21,10 @@ interface Props {
     sources: string[]
     tag_limit: number,
     full_res_search: boolean,
+    set_images: (images: [string, Post][]) => void,
 }
 
-interface Post {
+export interface Post {
     id: number,
     hash: string,
     score: number,
@@ -92,6 +93,7 @@ export function Search(props: Props): ReactElement[] {
             per_page={per_page} set_per_page={set_per_page}
             search={search} results={results} searching={searching}
             source={source} set_source={set_source} sources={props.sources}
+            set_images={props.set_images}
         />
     ];
 }
@@ -278,14 +280,12 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
 
             selected.push(i);
             props.set_selected(selected);
-            console.log(selected);
         } else {
             const selected = [...props.selected];
             let index = selected.indexOf(i);
             if(index === -1) return;
             selected.splice(index, 1);
             props.set_selected(selected);
-            console.log(selected);
         }
     };
     
@@ -301,7 +301,7 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                             : post.preview_url || post.resource_url
                     }
                     alt={post.id as any}
-                    loading="lazy" className="post_list_image"
+                    loading="lazy" className="hover_scale"
                     onMouseDown={e => {
                         if(e.ctrlKey) toggle_selection(!selected);
                         else set_post_view(post);
@@ -371,7 +371,8 @@ interface ControlsProps {
     source: string,
     sources: string[],
     set_source: (source: string) => void,
-    
+    set_images: (images: [string, Post][]) => void,
+
     page: number,
     set_page: (page: number) => void,
 
@@ -473,6 +474,7 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 posts={props.results}
                 selected={props.selected}
                 controls={props}
+                set_images={props.set_images}
             />
         </Stack>
     );
@@ -484,6 +486,7 @@ interface DialogProps {
     posts: Post[],
     selected: number[]
     controls: ControlsProps
+    set_images: (images: [string, Post][]) => void,
 }
 
 function DownloadDialog(props: DialogProps): ReactElement {
@@ -514,6 +517,10 @@ function DownloadDialog(props: DialogProps): ReactElement {
                     collection: collection === "null" ? null : collection,
                 }
             });
+            
+            const images = await invoke<[string, Post][]>("refresh_images");
+            console.log(images)
+            props.set_images(images);
         }
         catch (e) {
             console.error(e);
@@ -540,14 +547,14 @@ function DownloadDialog(props: DialogProps): ReactElement {
     }
     else {
         return (
-            <Dialog open={props.is_open} onClose={props.close}>
+            <Dialog open={props.is_open} onClose={props.close} maxWidth="sm" fullWidth>
                 <DialogTitle>Download options</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2}>
                         <TextField
                             disabled
                             select fullWidth
-                            label="Dataset"
+                            label="Target dataset"
                             color="primary"
                             variant="standard"
                             value={dataset}
@@ -563,7 +570,7 @@ function DownloadDialog(props: DialogProps): ReactElement {
                         <TextField
                             disabled
                             select fullWidth
-                            label="Collection"
+                            label="Target collection"
                             color="primary"
                             variant="standard"
                             defaultValue="null"

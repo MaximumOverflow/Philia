@@ -2167,11 +2167,11 @@ dependencies = [
  "lazy_static",
  "philia",
  "png",
- "rayon",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "tokio",
 ]
 
 [[package]]

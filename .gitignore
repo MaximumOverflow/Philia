@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 src-tauri/cache/
+work_dir/
 
 # Editor directories and files
 .vscode/*

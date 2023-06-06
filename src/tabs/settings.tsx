@@ -1,4 +1,4 @@
-import React, {ReactElement, useRef, useState} from "react";
+import React, {ReactElement, useEffect, useRef, useState} from "react";
 import {
     Collapse,
     List,
@@ -20,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import {downloadDir} from "@tauri-apps/api/path";
 import {open} from "@tauri-apps/api/dialog";
+import {invoke} from "@tauri-apps/api";
 
 interface Props {
     sources: string[],
@@ -42,7 +43,7 @@ interface Props {
 
 export function Settings(props: Props): ReactElement {
     return (
-        <Stack>
+        <Stack paddingTop="1em">
             <GeneralSettings {...props}/>
             <SearchSettings {...props}/>
             <DownloadSettings/>
@@ -131,11 +132,9 @@ function SearchSettings(props: Props): ReactElement {
     );
 }
 
-const DEFAULT_DOWNLOAD_DIR = await downloadDir();
-
 function DownloadSettings(): ReactElement {
-    const [tags, set_tags] = useState(true);
-    const [download_dir, set_download_dir] = useState(DEFAULT_DOWNLOAD_DIR);
+    const [download_dir, set_download_dir] = useState("");
+    useEffect(() => { invoke<string>("get_download_folder").then(set_download_dir) }, []);
 
     return (
         <List>
@@ -151,8 +150,10 @@ function DownloadSettings(): ReactElement {
                             title: "Choose download directory"
                         });
 
-                        if(dir !== null)
+                        if(dir !== null) {
+                            await invoke("set_download_folder", {folder: dir});
                             set_download_dir(dir as string);
+                        }
                     } finally {}
                 }}
             >
@@ -160,33 +161,6 @@ function DownloadSettings(): ReactElement {
                 <ListItemText primary="Download folder"/>
                 <Typography>{download_dir}</Typography>
             </ListItemButton>
-            
-            <ListItemButton onClick={() => set_tags(!tags)}>
-                <ListItemIcon><Tag color="primary"/></ListItemIcon>
-                <ListItemText primary="Tags"/>
-                {tags ? <ExpandLess color="primary"/> : <ExpandMore color="primary"/>}
-            </ListItemButton>
-            <Collapse in={tags}>
-                <List sx={{pl: 4}}>
-                    <ListItem>
-                        <ListItemIcon><Remove color="primary"/></ListItemIcon>
-                        <ListItemText primary="Remove tag underscores"/>
-                        <Switch/>
-                    </ListItem>
-
-                    <ListItem>
-                        <ListItemIcon><DataArray color="primary"/></ListItemIcon>
-                        <ListItemText primary="Escape tag parentheses"/>
-                        <Switch/>
-                    </ListItem>
-                    
-                    <ListItem>
-                        <ListItemIcon><DoNotDisturb color="primary"/></ListItemIcon>
-                        <ListItemText primary="Ignored tag categories"/>
-                        <TextField size="small" variant="standard" label="Ignored categories" style={{minWidth: 250}}/>
-                    </ListItem>
-                </List>
-            </Collapse>
         </List>
     );
 }

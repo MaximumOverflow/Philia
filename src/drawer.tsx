@@ -8,10 +8,15 @@ import {
     ListItemIcon, ListItemText,
     styled
 } from "@mui/material";
-import {ChevronRight, Collections, Dataset, Search, Settings, Source, Tag} from "@mui/icons-material";
+import {ChevronRight, Collections, Dataset as DatasetIcon, Search, Settings, Source, Tag} from "@mui/icons-material";
+import {Post} from "./tabs/search";
+import {Dataset} from "./tabs/datasets";
 
 interface Props {
     open: boolean,
+    sources: string[]
+    datasets: Dataset[],
+    images: [string, Post][],
     set_tab: (tab: string) => void,
     set_open: (open: boolean) => void,
 }
@@ -53,19 +58,19 @@ export function Drawer(props: Props): ReactElement {
                     <ListItemText primary="Search"/>
                 </ListItemButton>
                 
-                <ListItemButton onClick={() => props.set_tab("Datasets")} disabled>
-                    <ListItemIcon><Dataset color="primary"/></ListItemIcon>
-                    <ListItemText primary="Datasets" secondary={"Total datasets: 5"}/>
+                <ListItemButton onClick={() => props.set_tab("Datasets")}>
+                    <ListItemIcon><DatasetIcon color="primary"/></ListItemIcon>
+                    <ListItemText primary="Datasets" secondary={`Total datasets: ${props.datasets.length}`}/>
                 </ListItemButton>
 
                 <ListItemButton onClick={() => props.set_tab("Collections")} disabled>
                     <ListItemIcon><Collections color="primary"/></ListItemIcon>
-                    <ListItemText primary="Collections" secondary={"Total collections: 15"}/>
+                    <ListItemText primary="Collections" secondary={`Total images: ${props.images.length}`}/>
                 </ListItemButton>
 
                 <ListItemButton onClick={() => props.set_tab("Sources")} disabled>
                     <ListItemIcon><Source color="primary"/></ListItemIcon>
-                    <ListItemText primary="Manage sources" secondary={"Installed sources: 3"}/>
+                    <ListItemText primary="Manage sources" secondary={`Installed sources: ${props.sources.length}`}/>
                 </ListItemButton>
 
                 <ListItemButton onClick={() => props.set_tab("Settings")}>

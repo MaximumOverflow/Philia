@@ -27,11 +27,11 @@ input[type="color"]::-webkit-color-swatch {
     border: none;
 }
 
-.post_list_image {
+.hover_scale {
     transition: transform 0.3s;
 }
 
-.post_list_image:hover {
+.hover_scale:hover {
     transform: scale(1.02);
 }
 

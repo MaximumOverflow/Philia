@@ -4,21 +4,36 @@
 )]
 
 use tauri::Manager;
-use crate::settings::{DownloadSettingsState, TagSettingsState};
+use crate::settings::{Settings, SettingsState};
 
 mod sources;
 mod download;
 mod settings;
+mod datasets;
+mod images;
 
 fn main() {
+	#[cfg(debug_assertions)]
+	if std::env::var("TAURI_DEBUG").is_ok() {
+		std::env::set_current_dir("../work_dir/").unwrap();
+	}
+
 	tauri::Builder::default()
-		.manage(TagSettingsState::default())
-		.manage(DownloadSettingsState::default())
+		.manage(SettingsState::new(Settings::load().unwrap_or_default()))
 		.invoke_handler(tauri::generate_handler![
 			sources::get_available_sources,
 			sources::get_source_tags,
 			sources::search,
 			download::download_posts,
+			datasets::get_datasets,
+			datasets::set_dataset,
+			datasets::new_dataset,
+			datasets::del_dataset,
+			datasets::export_dataset,
+			images::get_images,
+			images::refresh_images,
+			settings::get_download_folder,
+			settings::set_download_folder,
 		])
 		.setup(|handle| {
 			#[cfg(debug_assertions)]

@@ -5,7 +5,7 @@ use std::path::Path;
 
 lazy_static! {
 	pub static ref SOURCES: HashMap<String, Client> = 'block: {
-		let Ok(entries) = std::fs::read_dir("./sources") else {
+		let Ok(entries) = std::fs::read_dir("./Sources") else {
 			break 'block Default::default();
 		};
 

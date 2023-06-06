@@ -1,10 +1,11 @@
 import {Box, createTheme, CssBaseline, PaletteMode, ThemeProvider,} from "@mui/material";
 import {Settings} from "./tabs/settings";
 import {invoke} from "@tauri-apps/api";
-import React, {useState} from "react";
-import {Search} from "./tabs/search";
+import React, {useEffect, useState} from "react";
+import {Post, Search} from "./tabs/search";
 import {Drawer} from "./drawer";
 import {AppBar} from "./appbar";
+import {Dataset, Datasets} from "./tabs/datasets";
 
 const SOURCES = await invoke<string[]>("get_available_sources");
 
@@ -18,6 +19,15 @@ export default function App() {
     const [search_columns, set_search_columns] = useState(6);
     const [search_tag_limit, set_search_tag_limit] = useState(10);
     const [full_res_search, set_full_res_search] = useState(false);
+
+    const [datasets, set_datasets] = useState([] as Dataset[]);
+    const [images, set_images] = useState([] as [string, Post][]);
+
+
+    useEffect(() => {
+        invoke<Dataset[]>("get_datasets").then(set_datasets);
+        invoke<[string, Post][]>("get_images").then(set_images);
+    }, []);
 
     const theme = createTheme({
         palette: {
@@ -34,7 +44,9 @@ export default function App() {
             full_res_search, 
             columns: search_columns,
             tag_limit: search_tag_limit,
+            set_images
         }),
+        
         "Settings": [
             <Settings
                 sources={SOURCES}
@@ -44,6 +56,11 @@ export default function App() {
                 full_res_search={full_res_search} set_full_res_search={set_full_res_search}
                 search_tag_limit={search_tag_limit} set_search_tag_limit={set_search_tag_limit}
             />,
+            null,
+        ],
+        
+        "Datasets": [
+            <Datasets datasets={datasets} set_datasets={set_datasets} all_images={images}/>,
             null,
         ]
     };
@@ -56,7 +73,10 @@ export default function App() {
             <CssBaseline/>
             <Box>
                 <AppBar tab={tab} controls={tab_controls} set_drawer_open={set_drawer_open}/>
-                <Drawer open={open_drawer} set_open={set_drawer_open} set_tab={set_tab}/>
+                <Drawer 
+                    open={open_drawer} set_open={set_drawer_open} set_tab={set_tab} 
+                    images={images} datasets={datasets} sources={SOURCES}
+                />
                 <Box marginTop="3em">{tab_view}</Box>
             </Box>
         </ThemeProvider>
