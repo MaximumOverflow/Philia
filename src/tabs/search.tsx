@@ -15,10 +15,15 @@ import React, {CSSProperties, ReactElement, useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {listen} from "@tauri-apps/api/event";
+import {Dataset} from "./datasets";
 
 interface Props {
+    sources: string[],
+    
+    datasets: Dataset[],
+    set_datasets: (datasets: Dataset[]) => void,
+    
     columns: number,
-    sources: string[]
     tag_limit: number,
     full_res_search: boolean,
     set_images: (images: [string, Post][]) => void,
@@ -88,12 +93,13 @@ export function Search(props: Props): ReactElement[] {
         />,
         <SearchControls 
             selected={selected}
+            set_images={props.set_images}
             page={page} set_page={set_page}
             order={order} set_order={set_order}
             per_page={per_page} set_per_page={set_per_page}
             search={search} results={results} searching={searching}
             source={source} set_source={set_source} sources={props.sources}
-            set_images={props.set_images}
+            datasets={props.datasets} set_datasets={props.set_datasets}
         />
     ];
 }
@@ -368,8 +374,12 @@ function PostViewTags(tags: string[], props: ViewProps): ReactElement {
 }
 
 interface ControlsProps {
-    source: string,
     sources: string[],
+    
+    datasets: Dataset[],
+    set_datasets: (datasets: Dataset[]) => void,
+    
+    source: string,
     set_source: (source: string) => void,
     set_images: (images: [string, Post][]) => void,
 
@@ -474,6 +484,7 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 posts={props.results}
                 selected={props.selected}
                 controls={props}
+                datasets={props.datasets} set_datasets={props.set_datasets}
                 set_images={props.set_images}
             />
         </Stack>
@@ -483,15 +494,20 @@ export function SearchControls(props: ControlsProps): ReactElement {
 interface DialogProps {
     is_open: boolean,
     close: () => void,
+    
     posts: Post[],
-    selected: number[]
-    controls: ControlsProps
+    selected: number[],
+    controls: ControlsProps,
+    
+    datasets: Dataset[],
+    set_datasets: (datasets: Dataset[]) => void,
+    
     set_images: (images: [string, Post][]) => void,
 }
 
 function DownloadDialog(props: DialogProps): ReactElement {
-    const [dataset, set_dataset] = useState("null");
-    const [collection, set_collection] = useState("null");
+    const [dataset, set_dataset] = useState(-1);
+    const [collection, set_collection] = useState(-1);
 
     const [downloading, set_downloading] = useState(false);
     const [download_completion, set_download_completion] = useState(0);
@@ -510,16 +526,21 @@ function DownloadDialog(props: DialogProps): ReactElement {
                 posts = props.selected.map(i => props.posts[i]);
             }
             
-            await invoke("download_posts", {
+            const new_images = await invoke<string[]>("download_posts", {
                 posts, source: props.controls.source,
                 options: {
-                    dataset: dataset === "null" ? null : dataset,
-                    collection: collection === "null" ? null : collection,
+                    dataset,
+                    collection,
                 }
             });
             
+            if(dataset !== -1) {
+                const selected = props.datasets[dataset];
+                Array.prototype.push.apply(selected.images, new_images);
+                props.set_datasets(await invoke("set_dataset", {dataset: selected, index: dataset}));
+            }
+            
             const images = await invoke<[string, Post][]>("refresh_images");
-            console.log(images)
             props.set_images(images);
         }
         catch (e) {
@@ -552,32 +573,30 @@ function DownloadDialog(props: DialogProps): ReactElement {
                 <DialogContent>
                     <Stack spacing={2}>
                         <TextField
-                            disabled
                             select fullWidth
                             label="Target dataset"
                             color="primary"
                             variant="standard"
                             value={dataset}
-                            onChange={e => set_dataset(e.target.value)}
+                            onChange={e => set_dataset(+e.target.value)}
                         >
-                            <MenuItem value={"null"}>None</MenuItem>
-                            <MenuItem value={"Dataset1"}>Dataset1</MenuItem>
-                            <MenuItem value={"Dataset2"}>Dataset2</MenuItem>
-                            <MenuItem value={"Dataset3"}>Dataset3</MenuItem>
-                            <MenuItem value={"Dataset4"}>Dataset4</MenuItem>
+                            <MenuItem value={-1}>None</MenuItem>
+                            {props.datasets.map((d, i) => (
+                                <MenuItem key={i} value={i}>{d.name}</MenuItem>
+                            ))}
                         </TextField>
 
                         <TextField
-                            disabled
+                            disabled 
                             select fullWidth
                             label="Target collection"
                             color="primary"
                             variant="standard"
                             defaultValue="null"
                             value={collection}
-                            onChange={e => set_collection(e.target.value)}
+                            onChange={e => set_collection(+e.target.value)}
                         >
-                            <MenuItem value={"null"}>None</MenuItem>
+                            <MenuItem value={-1}>None</MenuItem>
                             <MenuItem value={"Collection1"}>Collection1</MenuItem>
                             <MenuItem value={"Collection2"}>Collection2</MenuItem>
                             <MenuItem value={"Collection3"}>Collection3</MenuItem>

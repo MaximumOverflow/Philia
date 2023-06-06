@@ -32,6 +32,8 @@ fn main() {
 			datasets::export_dataset,
 			images::get_images,
 			images::refresh_images,
+			images::get_image_tags,
+			images::get_image_categories,
 			settings::get_download_folder,
 			settings::set_download_folder,
 		])

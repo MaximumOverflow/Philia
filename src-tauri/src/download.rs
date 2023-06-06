@@ -1,26 +1,18 @@
 use std::fs::File;
-use image::{GenericImageView, ImageFormat};
+use image::ImageFormat;
 use crate::sources::SOURCES;
 use philia::prelude::Post;
 use std::io::{BufWriter, Cursor};
 use std::sync::{Arc, Mutex};
 use png::{BitDepth, ColorType, Compression, Encoder};
-use itertools::Itertools;
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 use crate::settings::{SettingsState};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct Options {
-	dataset: Option<String>,
-	collection: Option<String>,
-}
-
 #[tauri::command]
 pub async fn download_posts(
-	source: String, posts: Vec<Post>, options: Options, handle: AppHandle,
+	source: String, posts: Vec<Post>, handle: AppHandle,
 	download_settings: State<'_, SettingsState>,
-) -> Result<(), String> {
+) -> Result<Vec<String>, String> {
 	let Some(source) = SOURCES.get(&source) else {
 		eprintln!("Source {source} not found");
 		return Err("Source not found".into());
@@ -42,50 +34,48 @@ pub async fn download_posts(
 			let download_folder = download_folder.clone();
 			tauri::async_runtime::spawn(async move {
 				macro_rules! inc_ret {
-					() => {{
+					($val: expr) => {{
 						let mut progress = progress.lock().unwrap();
 						let _ = handle
 							.emit_all("download_progress", ((*progress / count) * 100.0).trunc());
 						*progress += 1.0;
-						return;
+						return $val;
 					}};
 				}
 
 				let filename = format!("{}_{}.png", post.source, post.id);
 				let filepath = download_folder.join(filename);
 				if filepath.exists() {
-					inc_ret!();
+					inc_ret!(Err("File exists"));
 				}
 
 				match post.resource_url.as_ref().map(String::as_str) {
 					Some("gif") | Some("mp4") | Some("ogg") | Some("flv") | Some("webm") => {
-						inc_ret!()
+						inc_ret!(Err("Unsupported file type"))
 					},
 					_ => {},
 				}
-
-				println!("Downloading {:?}", post.resource_url);
 
 				let mut data = match source.download_async(&post).await {
 					Ok(data) => data,
 					Err(err) => {
 						eprintln!("{:?}", err);
-						inc_ret!();
+						inc_ret!(Err("Download failed"));
 					},
 				};
 
 				if let Err(err) = convert_to_png(&mut data) {
 					eprintln!("{:?}", err);
-					inc_ret!();
+					inc_ret!(Err("Png conversion failed"));
 				}
 
 				let image = image::load_from_memory(&data).unwrap();
 
-				let file = match File::create(filepath) {
+				let file = match File::create(&filepath) {
 					Ok(file) => file,
 					Err(err) => {
 						eprintln!("{:?}", err);
-						inc_ret!();
+						inc_ret!(Err("File creation failed"));
 					},
 				};
 
@@ -98,33 +88,36 @@ pub async fn download_posts(
 				let post_metadata = serde_json::to_string(&post).unwrap();
 				if let Err(err) = encoder.add_itxt_chunk("post_metadata".into(), post_metadata) {
 					eprintln!("Could not write tags {:?}", err);
-					inc_ret!();
+					inc_ret!(Err("Metadata encoding failed"));
 				}
 
 				let mut writer = match encoder.write_header() {
 					Ok(writer) => writer,
 					Err(err) => {
 						eprintln!("{:?}", err);
-						inc_ret!();
+						inc_ret!(Err("Header creation failed"));
 					},
 				};
 
 				let pixel_bytes = image.as_bytes();
 				if let Err(err) = writer.write_image_data(&pixel_bytes) {
 					eprintln!("{:?}", err);
-					inc_ret!();
+					inc_ret!(Err("Save operation failed"));
 				}
 
-				inc_ret!();
+				inc_ret!(Ok(filepath));
 			})
 		})
 		.collect();
 
+	let mut paths = Vec::with_capacity(promises.len());
 	for handle in promises {
-		let _ = handle.await;
+		if let Ok(Ok(path)) = handle.await {
+			paths.push(path.to_string_lossy().replace('\\', "/"));
+		}
 	}
 
-	Ok(())
+	Ok(paths)
 }
 
 pub fn convert_to_png(buffer: &mut Vec<u8>) -> Result<(), String> {

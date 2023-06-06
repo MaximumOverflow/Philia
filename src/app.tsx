@@ -41,6 +41,7 @@ export default function App() {
     const tabs = {
         "Search": Search({
             sources: SOURCES, 
+            datasets, set_datasets,
             full_res_search, 
             columns: search_columns,
             tag_limit: search_tag_limit,

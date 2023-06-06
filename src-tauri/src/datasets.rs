@@ -1,7 +1,7 @@
 use tauri::{AppHandle, Manager, State};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageFormat};
 use image::imageops::FilterType;
@@ -13,7 +13,7 @@ use crate::images::get_images_state;
 pub struct Dataset {
 	name: String,
 	#[serde(default = "Default::default")]
-	images: HashSet<PathBuf>,
+	images: HashSet<String>,
 	#[serde(default = "Default::default")]
 	thumbnail: Option<PathBuf>,
 	#[serde(default = "Default::default")]
@@ -43,20 +43,29 @@ pub struct Settings {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct TagSettings {
+	#[serde(default = "Default::default")]
 	pub remove_underscores: bool,
+	#[serde(default = "Default::default")]
 	pub escape_parentheses: bool,
-	pub ignore_categories: Vec<String>,
+	#[serde(default = "Default::default")]
+	pub ignore_categories: HashSet<String>,
+	#[serde(default = "Default::default")]
+	pub ignore_tags: HashSet<String>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ImageSettings {
+	#[serde(default = "Default::default")]
 	pub apply_letterboxing: bool,
+	#[serde(default = "Default::default")]
 	pub resize: (u32, u32),
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingSettings {
+	#[serde(default = "Default::default")]
 	pub keyword: String,
+	#[serde(default = "Default::default")]
 	pub repetitions: u32,
 }
 
@@ -127,7 +136,7 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 	}
 
 	let datasets = get_dataset_state(&handle);
-	let mut datasets = datasets.lock().unwrap();
+	let datasets = datasets.lock().unwrap();
 	let Some(dataset) = datasets.get(index) else {
 		return Err("Invalid dataset index".into());
 	};
@@ -144,13 +153,13 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 	let images = images.lock().unwrap();
 	let images = &*images;
 
-	for (image_path, post) in dataset.images.iter().map(|i| (i, images.get(i))) {
+	for (image_path, post) in dataset.images.iter().map(|i| (Path::new(i), images.get(i))) {
 		let Some(post) = post else { continue };
 		let Some(file_stem) = image_path.file_stem() else { continue; };
 		let Some(file_name) = image_path.file_name() else { continue; };
 
 		let image_destination = path.as_path().join(file_name);
-		let mut image = image::open(&image_path).map_err(|e| e.to_string())?;
+		let mut image = image::open(image_path).map_err(|e| e.to_string())?;
 
 		if dataset.settings.image.apply_letterboxing {
 			image = apply_letterboxing(&image);
@@ -197,18 +206,15 @@ pub fn apply_letterboxing(image: &DynamicImage) -> DynamicImage {
 }
 
 pub fn get_tag_string(post: &Post, settings: &TagSettings) -> String {
-	let categories = settings
-		.ignore_categories
-		.iter()
-		.map(|str| str.trim())
-		.collect::<HashSet<_>>();
-
 	let tags = match &post.tags {
 		Tags::All(tags) => tags.iter().join(", "),
 		Tags::Categorized(cats) => cats
 			.iter()
-			.filter(|(category, _)| !categories.contains(category.to_lowercase().as_str()))
+			.filter(|(category, _)| {
+				!settings.ignore_categories.contains(category.to_lowercase().as_str())
+			})
 			.flat_map(|(_, tags)| tags)
+			.filter(|tag| !settings.ignore_tags.contains(*tag))
 			.join(", "),
 	};
 

@@ -37,6 +37,7 @@ export interface Dataset {
             remove_underscores: boolean,
             escape_parentheses: boolean,
             ignore_categories: string[],
+            ignore_tags: string[],
         },
         image: {
             apply_letterboxing: boolean,
@@ -201,6 +202,7 @@ const EMPTY_DATASET: Dataset = {
             remove_underscores: false,
             escape_parentheses: false,
             ignore_categories: [],
+            ignore_tags: [],
         },
         image: {
             apply_letterboxing: false,
@@ -220,6 +222,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
     const [images, set_images] = useState(dataset.images);
     const [thumbnail, set_thumbnail] = useState(dataset.thumbnail);
     
+    const [ignore_tags, set_ignore_tags] = useState(dataset.settings.tags.ignore_categories);
     const [ignore_categories, set_ignore_categories] = useState(dataset.settings.tags.ignore_categories);
     const [escape_parentheses, set_escape_parentheses] = useState(dataset.settings.tags.escape_parentheses);
     const [remove_underscores, set_remove_underscores] = useState(dataset.settings.tags.remove_underscores);
@@ -232,11 +235,15 @@ function EditDatasetDialog(props: EditProps): ReactElement {
     
     const [manage_images, set_manage_images] = useState(false);
     
+    const [tags, set_tags] = useState([] as string[]);
+    const [tag_categories, set_tag_categories] = useState([] as string[]);
+    
     useEffect(() => {
         set_name(dataset.name);
         set_images(dataset.images);
         set_thumbnail(dataset.thumbnail);
         
+        set_ignore_tags(dataset.settings.tags.ignore_tags);
         set_ignore_categories(dataset.settings.tags.ignore_categories);
         set_remove_underscores(dataset.settings.tags.remove_underscores);
         set_escape_parentheses(dataset.settings.tags.escape_parentheses);
@@ -247,6 +254,15 @@ function EditDatasetDialog(props: EditProps): ReactElement {
         set_keyword(dataset.settings.training.keyword);
         set_repetitions(dataset.settings.training.repetitions);
     }, [dataset])
+    
+    useEffect(() => {
+        invoke<string[]>("get_image_categories", {imagePaths: images}).then(set_tag_categories);
+        invoke<string[]>("get_image_tags", {imagePaths: images, ignoredCategories: ignore_categories}).then(set_tags);
+    }, [images]);
+
+    useEffect(() => {
+        invoke<string[]>("get_image_tags", {imagePaths: images, ignoredCategories: ignore_categories}).then(set_tags);
+    }, [ignore_categories]);
 
     const close = () => props.set_edit(-1);
     const apply = async () => {
@@ -261,6 +277,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                         remove_underscores,
                         escape_parentheses,
                         ignore_categories,
+                        ignore_tags,
                     },
                     image: {
                         resize,
@@ -341,9 +358,9 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                                         >
                                                             <Image/>
                                                         </IconButton>
-                                                        <IconButton>
-                                                            <Edit/>
-                                                        </IconButton>
+                                                        {/*<IconButton>*/}
+                                                        {/*    <Edit/>*/}
+                                                        {/*</IconButton>*/}
                                                     </Stack>
                                                 )}
                                             />
@@ -392,11 +409,12 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                         <ListItemIcon><DoNotDisturb color="primary"/></ListItemIcon>
                                         <ListItemText primary="Ignored categories"/>
                                         <Autocomplete
-                                            options={[]}
+                                            options={tag_categories}
                                             style={{minWidth: 532}}
                                             value={ignore_categories}
                                             filterSelectedOptions={true}
                                             multiple freeSolo size="small"
+                                            ChipProps={{color: "error"}}
                                             renderInput={(params) => (
                                                 <TextField 
                                                     placeholder={ignore_categories.length === 0 ? "Categories" : ""}
@@ -404,6 +422,27 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                                 />
                                             )}
                                             onChange={(_, v) => set_ignore_categories(v)}
+                                        />
+                                    </ListItem>
+
+                                    <ListItem>
+                                        <ListItemIcon><DoNotDisturb color="primary"/></ListItemIcon>
+                                        <ListItemText primary="Ignored tags"/>
+                                        <Autocomplete
+                                            options={tags}
+                                            style={{minWidth: 532}}
+                                            filterSelectedOptions={true}
+                                            multiple freeSolo size="small"
+                                            ChipProps={{color: "error"}}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    placeholder={ignore_categories.length === 0 ? "Ignored" : ""}
+                                                    variant="standard" {...params}
+                                                />
+                                            )}
+
+                                            value={ignore_tags}
+                                            onChange={(_, v) => set_ignore_tags(v)}
                                         />
                                     </ListItem>
                                 </List>

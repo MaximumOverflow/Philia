@@ -1,13 +1,15 @@
 use crate::settings::SettingsState;
 use tauri::{AppHandle, Manager, State};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
+use std::ops::Deref;
 use philia::prelude::Post;
-use std::path::PathBuf;
 use std::sync::Mutex;
+use itertools::Itertools;
+use philia::data::Tags;
 use png::Decoder;
 
-pub type ImagesState = Mutex<HashMap<PathBuf, Post>>;
+pub type ImagesState = Mutex<HashMap<String, Post>>;
 
 pub fn get_images_state(handle: &AppHandle) -> State<'_, ImagesState> {
 	match handle.try_state() {
@@ -40,7 +42,7 @@ pub fn refresh_images_impl(
 				Ok(entry) => {
 					let path = entry.path();
 					let file = File::open(&path).ok()?;
-					let mut decoder = Decoder::new(file);
+					let decoder = Decoder::new(file);
 					let reader = decoder.read_info().ok()?;
 
 					let metadata = reader
@@ -52,7 +54,8 @@ pub fn refresh_images_impl(
 					let json = metadata.get_text().ok()?;
 					let post = serde_json::from_str::<Post>(&json).ok()?;
 
-					Some((path, post))
+					let key = path.to_string_lossy().replace('\\', "/");
+					Some((key, post))
 				},
 			})
 			.collect();
@@ -68,10 +71,7 @@ pub fn refresh_images_impl(
 pub async fn get_images(handle: AppHandle) -> Vec<(String, Post)> {
 	let images = get_images_state(&handle);
 	let images = images.lock().unwrap();
-	images
-		.iter()
-		.map(|(k, v)| (k.to_str().unwrap().replace("\\", "/"), v.clone()))
-		.collect()
+	images.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
 #[tauri::command]
@@ -80,4 +80,67 @@ pub async fn refresh_images(handle: AppHandle) -> Vec<(String, Post)> {
 	let settings = handle.state();
 	refresh_images_impl(&images, &settings);
 	get_images(handle).await
+}
+
+#[tauri::command]
+pub async fn get_image_tags(
+	image_paths: Vec<String>, ignored_categories: Option<HashSet<String>>, handle: AppHandle,
+) -> Vec<String> {
+	let images = get_images_state(&handle);
+	let images = images.lock().unwrap();
+	let images = images.deref();
+
+	let tags: HashSet<String> = image_paths
+		.into_iter()
+		.filter_map(|image| {
+			let post = images.get(&image)?;
+
+			if let Some(ignored_categories) = &ignored_categories {
+				match &post.tags {
+					Tags::All(a) => Some(a.clone()),
+					Tags::Categorized(c) => {
+						let mut tags = vec![];
+						for (key, value) in c.iter() {
+							if !ignored_categories.contains(key) {
+								tags.extend_from_slice(&value);
+							}
+						}
+
+						Some(tags)
+					},
+				}
+			} else {
+				let tags = post.tags.iter().map(str::to_string).collect_vec();
+				Some(tags)
+			}
+		})
+		.flatten()
+		.collect();
+
+	let mut tags = Vec::from_iter(tags);
+	tags.sort();
+	tags
+}
+
+#[tauri::command]
+pub async fn get_image_categories(image_paths: Vec<String>, handle: AppHandle) -> Vec<String> {
+	let images = get_images_state(&handle);
+	let images = images.lock().unwrap();
+	let images = images.deref();
+
+	let categories: HashSet<String> = image_paths
+		.into_iter()
+		.filter_map(|image| {
+			let post = images.get(&image)?;
+			match &post.tags {
+				Tags::All(_) => None,
+				Tags::Categorized(c) => Some(c.keys().cloned()),
+			}
+		})
+		.flatten()
+		.collect();
+
+	let mut categories = Vec::from_iter(categories);
+	categories.sort();
+	categories
 }
