@@ -50,6 +50,9 @@ fn parse_search_result(result) {
             hash: result.md5,
             resource_url: result.file_url,
             preview_url: result.preview_file_url,
+            
+            resource_dimensions: [result.image_width ?? 0, result.image_height ?? 0],
+            preview_dimensions: [result.media_assets?.variants[0]?.width ?? 0, result.media_assets?.variants[0]?.height ?? 0]
         });
     }
     

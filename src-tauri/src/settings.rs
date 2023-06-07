@@ -8,12 +8,20 @@ use std::sync::Mutex;
 pub struct Settings {
 	pub dark_mode: bool,
 	pub accent: String,
-	
+
 	pub tag_search_result_limit: u32,
 	pub search_image_list_columns: u32,
 	pub full_resolution_preview: bool,
+	pub image_loading_mode: ImageLoadingMode,
 	
 	pub download_folder: PathBuf,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub enum ImageLoadingMode {
+	#[default]
+	Eager,
+	Lazy,
 }
 
 impl Settings {
@@ -33,24 +41,25 @@ impl Default for Settings {
 		Self {
 			dark_mode: true,
 			accent: "#ffb446".to_string(),
-			
+
 			tag_search_result_limit: 10,
 			search_image_list_columns: 6,
 			full_resolution_preview: false,
-			
+			image_loading_mode: ImageLoadingMode::Eager,
+
 			download_folder: {
 				fn get_local_download_dir() -> Result<PathBuf, std::io::Error> {
 					std::fs::create_dir_all("./downloads")?;
 					dunce::canonicalize("./downloads")
 				}
-				
+
 				match get_local_download_dir() {
 					Ok(path) => path,
 					Err(_) => {
 						let path = download_dir().expect("Missing download dir").join("Philia");
 						std::fs::create_dir_all(&path).expect("Could not create download dir");
 						path
-					}
+					},
 				}
 			},
 		}

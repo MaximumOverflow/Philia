@@ -9,7 +9,9 @@ use image::ImageFormat;
 use std::fs::File;
 
 #[tauri::command]
-pub async fn download_posts(posts: Vec<Post>, handle: AppHandle, download_settings: State<'_, SettingsState>) -> Result<Vec<String>, String> {
+pub async fn download_posts(
+	posts: Vec<Post>, handle: AppHandle, download_settings: State<'_, SettingsState>,
+) -> Result<Vec<String>, String> {
 	let download_folder = {
 		let settings = download_settings.lock().unwrap();
 		settings.download_folder.clone()
@@ -34,7 +36,7 @@ pub async fn download_posts(posts: Vec<Post>, handle: AppHandle, download_settin
 						return $val;
 					}};
 				}
-				
+
 				let client = make_async_http_client(DEFAULT_USER_AGENT).unwrap();
 
 				let filename = format!("{}_{}.png", post.source, post.id);
@@ -47,12 +49,12 @@ pub async fn download_posts(posts: Vec<Post>, handle: AppHandle, download_settin
 					Some(url) => url,
 					None => inc_ret!(Err("Missing resource url")),
 				};
-				
+
 				if let Some(dot) = url.rfind('.') {
 					match &url[dot + 1..] {
 						"mp4" | "flv" | "ogg" | "webm" | "gif" => {
 							inc_ret!(Err("Unsupported file type"));
-						}
+						},
 						_ => {},
 					}
 				}

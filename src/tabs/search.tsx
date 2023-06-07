@@ -10,7 +10,7 @@ import {
     Stack,
     TextField, Typography
 } from "@mui/material";
-import {Close, Download, Search as SearchIcon} from "@mui/icons-material";
+import {Check, Close, Download, Search as SearchIcon} from "@mui/icons-material";
 import React, {CSSProperties, ReactElement, useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
@@ -39,6 +39,8 @@ interface Props {
     columns: number,
     tag_limit: number,
     full_res_search: boolean,
+
+    images: Set<string>;
     set_images: (images: [string, Post][]) => void,
 }
 
@@ -50,6 +52,8 @@ export interface Post {
     resource_url: string,
     preview_url: string | null,
     tags: {All: string[]} | {Categorized: any},
+    preview_dimensions: [number, number] | null,
+    resource_dimensions: [number, number] | null,
 }
 
 type Order = "Newest" | "Oldest" | "MostLiked" | "LeastLiked";
@@ -80,6 +84,10 @@ export function Search(props: Props): ReactElement[] {
         if(source === EMPTY_SOURCE || tags === undefined || tags === null) return;
         writeTextFile(`./cache/${source.name}_tags.json`, JSON.stringify(tags, null, 4)).catch(console.error);
     }, [tags])
+    
+    useEffect(() => {
+        set_selected([]);
+    }, [page, results]);
 
     const search = async () => {
         try {
@@ -106,10 +114,11 @@ export function Search(props: Props): ReactElement[] {
     
     return [
         <SearchView 
-            search={search} 
+            search={search}
             searching={searching}
             tags={tags}
             results={results}
+            images={props.images}
             columns={props.columns}
             tag_limit={props.tag_limit}
             full_res_search={props.full_res_search}
@@ -118,7 +127,7 @@ export function Search(props: Props): ReactElement[] {
             selected={selected} set_selected={set_selected}
         />,
         <SearchControls 
-            selected={selected}
+            selected={selected} set_selected={set_selected}
             set_images={props.set_images}
             tags={tags} set_tags={set_tags}
             page={page} set_page={set_page}
@@ -143,15 +152,19 @@ interface ViewProps {
 
     selected: number[],
     set_selected: (selected: number[]) => void,
-    
+
+    images: Set<string>,
     tags: string[] | null | undefined,
     search: () => Promise<any[] | undefined>,
 }
 
 const IMAGE_VIEW_STYLE: CSSProperties = {maxHeight: "75vh", objectFit: "contain"};
+
 const IMAGE_VIEW_TAG_STYLE: CSSProperties = {display: "inline-block", padding: 2};
 const IMAGE_CHECKBOX_STYLE: CSSProperties = {position: "absolute", bottom: 0, right: 0};
 const IMAGE_VIEW_TAGS_STYLE: CSSProperties = {maxWidth: "30em", overflow: "auto", maxHeight: "75vh"};
+const IMAGE_CHECKMARK_STYLE: CSSProperties = {position: "absolute", top: 4, right: 4, color: "green"};
+const IMAGE_NO_CHECKMARK_STYLE: CSSProperties = {position: "absolute", top: 4, right: 4, display: "none"};
 
 export function SearchView(props: ViewProps): ReactElement {
     const [post_view, set_post_view] = useState(null as Post | null);
@@ -227,7 +240,9 @@ export function SearchView(props: ViewProps): ReactElement {
     return (
         <Stack>
             <ImageList variant="masonry" cols={props.columns} gap={8} style={{padding: ".5em"}}>
-                {props.results.map((post, i) => PostPreview(i, post, set_post_view, props))}
+                {props.results.map((post, i) => {
+                    return PostPreview(i, post, set_post_view, props);
+                })}
             </ImageList>
 
             <Paper
@@ -345,7 +360,7 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                             : post.preview_url || post.resource_url
                     }
                     alt={post.id as any}
-                    loading="lazy" className="hover_scale"
+                    loading="eager" className="hover_scale"
                     onMouseDown={e => {
                         if(e.ctrlKey) toggle_selection(!selected);
                         else set_post_view(post);
@@ -361,6 +376,8 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                         }
                     }}
                 />
+                
+                <Check style={props.images.has(post.resource_url) ? IMAGE_CHECKMARK_STYLE : IMAGE_NO_CHECKMARK_STYLE}/>
 
                 <Checkbox 
                     style={IMAGE_CHECKBOX_STYLE}
@@ -441,7 +458,9 @@ interface ControlsProps {
     set_order: (order: Order) => void,
 
     results: Post[],
+    
     selected: number[],
+    set_selected: (selected: number[]) => void,
 
     tags: string[] | null | undefined,
     set_tags: (tags: string[] | null) => void
@@ -536,7 +555,7 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 selected={props.selected}
                 controls={props}
                 datasets={props.datasets} set_datasets={props.set_datasets}
-                set_images={props.set_images}
+                set_images={props.set_images} set_selected={props.set_selected}
             />
             {NoTagsDialog(props.source, props.tags, props.set_tags)}
         </Stack>
@@ -548,8 +567,10 @@ interface DialogProps {
     close: () => void,
     
     posts: Post[],
-    selected: number[],
     controls: ControlsProps,
+
+    selected: number[],
+    set_selected: (selected: number[]) => void,
     
     datasets: Dataset[],
     set_datasets: (datasets: Dataset[]) => void,
@@ -594,6 +615,7 @@ function DownloadDialog(props: DialogProps): ReactElement {
             
             const images = await invoke<[string, Post][]>("refresh_images");
             props.set_images(images);
+            props.set_selected([]);
         }
         catch (e) {
             console.error(e);

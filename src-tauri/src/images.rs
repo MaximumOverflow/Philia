@@ -71,7 +71,9 @@ pub fn refresh_images_impl(
 pub async fn get_images(handle: AppHandle) -> Vec<(String, Post)> {
 	let images = get_images_state(&handle);
 	let images = images.lock().unwrap();
-	images.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+	let mut images = images.iter().map(|(k, v)| (k.clone(), v.clone())).collect_vec();
+	images.sort_by(|(a, _), (b, _)| a.cmp(b));
+	images
 }
 
 #[tauri::command]

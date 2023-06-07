@@ -16,6 +16,7 @@ export default function App() {
 
     const [datasets, set_datasets] = useState([] as Dataset[]);
     const [images, set_images] = useState([] as [string, Post][]);
+    const [image_set, set_image_set] = useState(new Set<string>());
     
     const [settings, set_settings] = useState(SETTINGS_PLACEHOLDER)
     
@@ -30,6 +31,10 @@ export default function App() {
             invoke("set_settings", {settings}).catch(console.error);
         }
     }, [settings]);
+    
+    useEffect(() => {
+        set_image_set(new Set<string>(images.map(([, img]) => img.resource_url)));
+    }, [images])
 
     const theme = createTheme({
         palette: {
@@ -47,18 +52,22 @@ export default function App() {
             columns: settings.search_image_list_columns,
             tag_limit: settings.tag_search_result_limit,
             full_res_search: settings.full_resolution_preview,
-            set_images
+            images: image_set, set_images
         }),
 
         "Datasets": [
-            <Datasets datasets={datasets} set_datasets={set_datasets} all_images={images}/>,
+            <Datasets 
+                settings={settings} 
+                datasets={datasets} set_datasets={set_datasets} 
+                all_images={images}
+            />,
             null,
         ],
 
         "Images": [
             <Images 
                 images={images} set_images={set_images}
-                columns={settings.search_image_list_columns}
+                settings={settings}
             />,
             null,
         ],

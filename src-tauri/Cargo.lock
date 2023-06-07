@@ -2190,7 +2190,7 @@ dependencies = [
 [[package]]
 name = "philia"
 version = "1.0.0"
-source = "git+https://github.com/MaximumOverflow/Philia?rev=4358440d#4358440d8c8a332a1f94a76d7c27884f71aaf6cb"
+source = "git+https://github.com/MaximumOverflow/Philia?rev=baadc182#baadc1826db6c154e2568a7cd1ab4aefc99f2a17"
 dependencies = [
  "bitflags 2.3.1",
  "const_format",

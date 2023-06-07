@@ -4,7 +4,7 @@ import {
     ListItem,
     ListItemButton,
     ListItemIcon,
-    ListItemText, ListSubheader, Stack, Switch, TextField, Typography
+    ListItemText, ListSubheader, MenuItem, Stack, Switch, TextField, Typography
 } from "@mui/material";
 import {DarkMode, Folder, FormatListNumbered, Image, ViewColumn} from "@mui/icons-material";
 import {Source} from "./search"
@@ -17,6 +17,7 @@ export interface Settings {
     tag_search_result_limit: number,
     search_image_list_columns: number,
     full_resolution_preview: boolean,
+    image_loading_mode: "Eager" | "Lazy",
 
     download_folder: string,
 }
@@ -27,6 +28,7 @@ export const SETTINGS_PLACEHOLDER: Settings = {
     tag_search_result_limit: 0,
     search_image_list_columns: 0,
     full_resolution_preview: false,
+    image_loading_mode: "Eager",
     download_folder: ""
 }
 
@@ -78,6 +80,27 @@ function GeneralSettings(props: Props): ReactElement {
                         props.set_settings(settings);
                     }}
                 />
+            </ListItem>
+
+            <ListItem>
+                <ListItemIcon><Image color="primary"/></ListItemIcon>
+                <ListItemText primary="Image loading mode"/>
+                <TextField
+                    select
+                    label="Mode"
+                    color="primary"
+                    variant="standard"
+                    style={{minWidth: 250}}
+                    value={props.settings.image_loading_mode}
+                    onChange={(e) => {
+                        const settings = {...props.settings};
+                        settings.image_loading_mode = e.target.value as any;
+                        props.set_settings(settings);
+                    }}
+                >
+                    <MenuItem value={"Eager"}>Eager</MenuItem>
+                    <MenuItem value={"Lazy"}>Lazy</MenuItem>
+                </TextField>
             </ListItem>
         </List>
     );

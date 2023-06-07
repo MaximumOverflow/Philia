@@ -33,6 +33,8 @@ fn parse_search_result(result) {
             hash: result.hash,
             resource_url: `https://safebooru.org/images/${result.directory}/${result.image}`,
             preview_url: `https://safebooru.org/samples/${result.directory}/sample_${result.image}`,
+            
+            resource_dimensions: [result.width ?? 0, result.height ?? 0],
         });
     }
     

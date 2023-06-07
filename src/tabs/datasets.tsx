@@ -27,6 +27,7 @@ import {invoke} from "@tauri-apps/api";
 import {convertFileSrc} from "@tauri-apps/api/tauri";
 import {Post} from "./search";
 import {open} from "@tauri-apps/api/dialog";
+import {Settings} from "./settings";
 
 export interface Dataset {
     name: string,
@@ -51,6 +52,7 @@ export interface Dataset {
 }
 
 interface Props {
+    settings: Settings,
     datasets: Dataset[],
     all_images: [string, Post][],
     set_datasets: (datasets: Dataset[]) => void,
@@ -84,6 +86,7 @@ export function Datasets(props: Props): ReactElement {
             </ImageList>
             
             <EditDatasetDialog
+                settings={props.settings}
                 index={edit} set_edit={set_edit} all_images={props.all_images}
                 datasets={props.datasets} set_datasets={props.set_datasets}
             />
@@ -187,6 +190,7 @@ function DatasetPreview(
 }
 
 interface EditProps {
+    settings: Settings,
     all_images: [string, Post][],
     datasets: Dataset[], index: number,
     set_edit: (index: number) => void,
@@ -214,6 +218,8 @@ const EMPTY_DATASET: Dataset = {
         }
     }
 }
+
+const IMAGE_PLACEHOLDER_STYLE: CSSProperties = {minHeight: "256px"};
 
 function EditDatasetDialog(props: EditProps): ReactElement {
     const dataset = props.datasets[props.index] || EMPTY_DATASET;
@@ -343,10 +349,22 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                     {images.map(path => (
                                         <ImageListItem key={path}>
                                             <Stack>
-                                                <img
-                                                    src={convertFileSrc(path)} alt={path}
-                                                    loading="lazy" className="hover_scale"
-                                                />
+                                                {
+                                                    props.settings.image_loading_mode === "Eager"
+                                                        ?   <img
+                                                                src={convertFileSrc(path)} alt={path}
+                                                                loading="eager" className="hover_scale"
+                                                            />
+                                                        :   <img
+                                                                src={convertFileSrc(path)} alt={path}
+                                                                loading="lazy" className="hover_scale"
+                                                                style={IMAGE_PLACEHOLDER_STYLE}
+                                                                onLoad={e => {
+                                                                    e.currentTarget.setAttribute("style", "");
+                                                                    e.currentTarget.onload = null;
+                                                                }}
+                                                            />
+                                                }
                                             </Stack>
                                             <ImageListItemBar
                                                 title={path.split("/").pop()}
@@ -368,6 +386,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                     ))}
                                 </ImageList>
                                 <ManageImagesDialog
+                                    settings={props.settings}
                                     open={manage_images} set_open={set_manage_images}
                                     all_images={props.all_images} images={images} set_images={set_images}
                                 />
@@ -536,6 +555,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
 }
 
 interface ManageImagesProps {
+    settings: Settings,
     all_images: [string, Post][],
     
     open: boolean,
@@ -614,12 +634,22 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
                         const filename = path.split("/").pop();
                         return (
                             <ImageListItem key={path} className="hover_scale">
-                                <img
-                                    alt={filename}
-                                    src={convertFileSrc(path)}
-                                    loading="lazy"
-                                    onMouseDown={toggle}
-                                />
+                                {
+                                    props.settings.image_loading_mode === "Eager"
+                                        ?   <img
+                                                src={convertFileSrc(path)} alt={path}
+                                                loading="eager" className="hover_scale"
+                                            />
+                                        :   <img
+                                                src={convertFileSrc(path)} alt={path}
+                                                loading="lazy" className="hover_scale"
+                                                style={IMAGE_PLACEHOLDER_STYLE}
+                                                onLoad={e => {
+                                                    e.currentTarget.setAttribute("style", "");
+                                                    e.currentTarget.onload = null;
+                                                }}
+                                            />
+                                }
                                 <ImageListItemBar
                                     title={filename}
                                     actionIcon={
