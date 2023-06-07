@@ -63,15 +63,15 @@ export function Drawer(props: Props): ReactElement {
                     <ListItemText primary="Datasets" secondary={`Total datasets: ${props.datasets.length}`}/>
                 </ListItemButton>
 
-                <ListItemButton onClick={() => props.set_tab("Collections")} disabled>
+                <ListItemButton onClick={() => props.set_tab("Images")}>
                     <ListItemIcon><Collections color="primary"/></ListItemIcon>
-                    <ListItemText primary="Collections" secondary={`Total images: ${props.images.length}`}/>
+                    <ListItemText primary="Images" secondary={`Total images: ${props.images.length}`}/>
                 </ListItemButton>
 
-                <ListItemButton onClick={() => props.set_tab("Sources")} disabled>
-                    <ListItemIcon><SourceIcon color="primary"/></ListItemIcon>
-                    <ListItemText primary="Manage sources" secondary={`Installed sources: ${props.sources.length}`}/>
-                </ListItemButton>
+                {/*<ListItemButton onClick={() => props.set_tab("Sources")} disabled>*/}
+                {/*    <ListItemIcon><SourceIcon color="primary"/></ListItemIcon>*/}
+                {/*    <ListItemText primary="Manage sources" secondary={`Installed sources: ${props.sources.length}`}/>*/}
+                {/*</ListItemButton>*/}
 
                 <ListItemButton onClick={() => props.set_tab("Settings")}>
                     <ListItemIcon><Settings color="primary"/></ListItemIcon>

@@ -22,7 +22,7 @@ itertools = "0.10.5"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 philia = { git = "https://github.com/MaximumOverflow/Philia", rev = "4358440d", features = ["additional_post_metadata", "scripting"] }
-tauri = { version = "1.2", features = ["dialog-open", "dialog-save", "fs-write-file", "path-all", "protocol-asset", "shell-open"] }
+tauri = { version = "1.2", features = ["dialog-open", "dialog-save", "fs-remove-file", "fs-write-file", "path-all", "protocol-asset", "shell-open"] }
 
 [profile.dev.package."*"]
 opt-level = 3

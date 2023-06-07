@@ -28,6 +28,7 @@
       "fs": {
         "all": false,
         "writeFile": true,
+        "removeFile": true,
         "scope": ["**"]
       },
       "protocol": {
@@ -50,7 +51,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.maximumoverflow.philia",
+      "identifier": "com.MaximumOverflow.PhiliaImageScraper",
       "longDescription": "",
       "macOS": {
         "entitlements": null,

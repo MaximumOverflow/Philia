@@ -8,7 +8,7 @@ fn get_search_url(page, limit, order, include, exclude) {
     };
     
     for tag in include { tags = `${tags}+${tag}` }
-    for tag in exclude { tags = `${tags}-${tag}` }
+    for tag in exclude { tags = `${tags}+-${tag}` }
     
     `https://e621.net/posts.json?limit=${limit}&page=${page}&tags=${tags}`
 }

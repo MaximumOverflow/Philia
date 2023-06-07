@@ -1,7 +1,7 @@
 use philia::prelude::{SearchOrder, Post, Client, TagOrder};
+use philia::source::{FeatureFlags, ScriptableSource};
 use std::collections::{HashMap, HashSet};
 use tauri::{AppHandle, Manager, State};
-use philia::source::{FeatureFlags, ScriptableSource};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::sync::Mutex;
@@ -88,7 +88,11 @@ pub async fn fetch_source_tags(source: String, handle: AppHandle) -> Result<Vec<
 }
 
 #[tauri::command]
-pub async fn search(source: String, page: u32, limit: u32, order: SearchOrder, tags: Vec<String>, handle: AppHandle) -> Result<Vec<Post>, String> {
+pub async fn search(
+	source: String, page: u32, limit: u32, 
+	order: SearchOrder, tags: Vec<String>,
+	handle: AppHandle
+) -> Result<(Vec<Post>, Vec<String>), String> {
 	let client = {
 		let (state, _) = get_sources_state(&handle);
 		let state = state.lock().unwrap();
@@ -110,7 +114,25 @@ pub async fn search(source: String, page: u32, limit: u32, order: SearchOrder, t
 		}
 	}
 
-	client.search_async(page, limit, order, include.into_iter(), exclude.into_iter()).await.map_err(|e| e.to_string())
+	let posts = client.search_async(page, limit, order, include.into_iter(), exclude.into_iter())
+		.await.map_err(|e| e.to_string())?;
+
+	let (state, _) = get_sources_state(&handle);
+	let mut state = state.lock().unwrap();
+
+	let Some((_, tags)) = state.get_mut(&source) else {
+		return Ok((posts, vec![]));
+	};
+	
+	let tags = match tags { 
+		Some(tags) => tags,
+		None => tags.insert(HashSet::default()),
+	};
+	
+	tags.extend(posts.iter().map(|p| p.tags.iter().map(str::to_string)).flatten());
+	let mut tags = Vec::from_iter(tags.iter().cloned());
+	tags.sort_by(sort_tags);
+	Ok((posts, tags))
 }
 
 pub fn get_sources_state(handle: &AppHandle) -> (State<'_, SourcesState>, bool) {

@@ -6,18 +6,18 @@ import {Post, Search, Source} from "./tabs/search";
 import {Drawer} from "./drawer";
 import {AppBar} from "./appbar";
 import {Dataset, Datasets} from "./tabs/datasets";
+import {Images} from "./tabs/images";
 
 const SOURCES = await invoke<Source[]>("get_available_sources");
 
 export default function App() {
     const [tab, set_tab] = useState("Search");
     const [open_drawer, set_drawer_open] = useState(false);
+
+    const [datasets, set_datasets] = useState([] as Dataset[]);
+    const [images, set_images] = useState([] as [string, Post][]);
     
     const [settings, set_settings] = useState(SETTINGS_PLACEHOLDER)
-    
-    const [datasets, set_datasets] = useState([] as Dataset[]);
-
-    const [images, set_images] = useState([] as [string, Post][]);
     
     useEffect(() => {
         invoke<Settings>("get_settings").then(set_settings);
@@ -49,7 +49,20 @@ export default function App() {
             full_res_search: settings.full_resolution_preview,
             set_images
         }),
-        
+
+        "Datasets": [
+            <Datasets datasets={datasets} set_datasets={set_datasets} all_images={images}/>,
+            null,
+        ],
+
+        "Images": [
+            <Images 
+                images={images} set_images={set_images}
+                columns={settings.search_image_list_columns}
+            />,
+            null,
+        ],
+
         "Settings": [
             <Settings
                 sources={SOURCES}
@@ -57,11 +70,6 @@ export default function App() {
             />,
             null,
         ],
-        
-        "Datasets": [
-            <Datasets datasets={datasets} set_datasets={set_datasets} all_images={images}/>,
-            null,
-        ]
     };
     
     // @ts-ignore

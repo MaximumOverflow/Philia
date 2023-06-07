@@ -8,7 +8,7 @@ fn get_search_url(page, limit, order, include, exclude) {
     };
     
     for tag in include { tags = `${tags}+${tag}` }
-    for tag in exclude { tags = `${tags}-${tag}` }
+    for tag in exclude { tags = `${tags}+-${tag}` }
     
     `https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=${limit}&pid=${page}&tags=${tags}`
 }

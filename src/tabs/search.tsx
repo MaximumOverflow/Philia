@@ -84,16 +84,18 @@ export function Search(props: Props): ReactElement[] {
     const search = async () => {
         try {
             set_searching(true);
-            const results = await invoke<Post[]>("search", {
+            const [posts, tags] = await invoke<[Post[], string[]]>("search", {
                 source: source.name,
                 page: page,
                 limit: per_page,
                 order: order,
                 tags: query,
             });
-
-            set_results(results);
+            
+            set_results(posts);
             set_searching(false);
+            if(tags.length !== 0)
+                set_tags(tags);
             return results;
         } catch (e) {
             console.error(e);
@@ -211,6 +213,10 @@ export function SearchView(props: ViewProps): ReactElement {
                             src={post_view?.resource_url} 
                             alt={post_view?.id as any} 
                             style={IMAGE_VIEW_STYLE}
+                            onError={e => {
+                                e.currentTarget.src = post.preview_url || post.resource_url;
+                                e.currentTarget.onerror = null;
+                            }}
                         />
                     </TransformComponent>
                 </TransformWrapper>
@@ -254,25 +260,28 @@ export function SearchView(props: ViewProps): ReactElement {
                         }
                     })}
                     filterOptions={(options, state) => {
-                        let search = state.inputValue;
+                        const results = [];
+                        const search = state.inputValue;
+                        
                         if(search.startsWith("-")) {
-                            search = search.slice(1);
-                            const results = [] as string[];
+                            const tag = search.slice(1);
                             for(const value of options) {
                                 if(results.length >= props.tag_limit) break;
-                                if(value.includes(search)) results.push("-" + value);
+                                if(value.includes(tag)) results.push("-" + value);
                             }
-
-                            return results;
                         }
                         else {
-                            const results = [] as string[];
                             for(const value of options) {
                                 if(results.length >= props.tag_limit) break;
                                 if(value.includes(search)) results.push(value);
                             }
-                            return results;
                         }
+
+                        results.sort((a, b) => {
+                            return Number(a.startsWith(search)) > Number(b.startsWith(search)) ? -1 : 1;
+                        })
+
+                        return results;
                     }}
                     onKeyDown={async (event) => {
                         const value = (event.target as any).value as string;
@@ -342,7 +351,11 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                         else set_post_view(post);
                     }}
                     onError={e => {
-                        if(!props.full_res_search) {
+                        if(props.full_res_search) {
+                            e.currentTarget.src = post.preview_url || post.resource_url;
+                            e.currentTarget.onerror = null;
+                        } 
+                        else {
                             e.currentTarget.src = post.resource_url;
                             e.currentTarget.onerror = null;
                         }
@@ -508,7 +521,7 @@ export function SearchControls(props: ControlsProps): ReactElement {
             </Button>
             
             <Button
-                disabled={props.searching}
+                disabled={props.searching || props.results.length === 0}
                 color="primary" variant="contained" 
                 startIcon={<Download/>}
                 onClick={() => set_download_open(true)}
@@ -625,27 +638,26 @@ function DownloadDialog(props: DialogProps): ReactElement {
                             ))}
                         </TextField>
 
-                        <TextField
-                            disabled 
-                            select fullWidth
-                            label="Target collection"
-                            color="primary"
-                            variant="standard"
-                            defaultValue="null"
-                            value={collection}
-                            onChange={e => set_collection(+e.target.value)}
-                        >
-                            <MenuItem value={-1}>None</MenuItem>
-                            <MenuItem value={"Collection1"}>Collection1</MenuItem>
-                            <MenuItem value={"Collection2"}>Collection2</MenuItem>
-                            <MenuItem value={"Collection3"}>Collection3</MenuItem>
-                            <MenuItem value={"Collection4"}>Collection4</MenuItem>
-                        </TextField>
+                        {/*<TextField*/}
+                        {/*    disabled */}
+                        {/*    select fullWidth*/}
+                        {/*    label="Target collection"*/}
+                        {/*    color="primary"*/}
+                        {/*    variant="standard"*/}
+                        {/*    defaultValue="null"*/}
+                        {/*    value={collection}*/}
+                        {/*    onChange={e => set_collection(+e.target.value)}*/}
+                        {/*>*/}
+                        {/*</TextField>*/}
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={download}>Download</Button>
-                    <Button onClick={props.close}>Cancel</Button>
+                    <Button onClick={download}>
+                        Download
+                    </Button>
+                    <Button onClick={props.close}>
+                        Cancel
+                    </Button>
                 </DialogActions>
             </Dialog>
         );
