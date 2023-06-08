@@ -6,7 +6,7 @@ import {Post, Search, Source} from "./tabs/search";
 import {Drawer} from "./drawer";
 import {AppBar} from "./appbar";
 import {Dataset, Datasets} from "./tabs/datasets";
-import {Images} from "./tabs/images";
+import {get_saved_images, Images, SavedImage} from "./tabs/images";
 
 const SOURCES = await invoke<Source[]>("get_available_sources");
 
@@ -15,15 +15,14 @@ export default function App() {
     const [open_drawer, set_drawer_open] = useState(false);
 
     const [datasets, set_datasets] = useState([] as Dataset[]);
-    const [images, set_images] = useState([] as [string, Post][]);
-    const [image_set, set_image_set] = useState(new Set<string>());
+    const [images, set_images] = useState(new Map<string, SavedImage>());
     
     const [settings, set_settings] = useState(SETTINGS_PLACEHOLDER)
     
     useEffect(() => {
         invoke<Settings>("get_settings").then(set_settings);
         invoke<Dataset[]>("get_datasets").then(set_datasets);
-        invoke<[string, Post][]>("get_images").then(set_images);
+        get_saved_images().then(set_images);
     }, []);
     
     useEffect(() => {
@@ -31,10 +30,6 @@ export default function App() {
             invoke("set_settings", {settings}).catch(console.error);
         }
     }, [settings]);
-    
-    useEffect(() => {
-        set_image_set(new Set<string>(images.map(([, img]) => img.resource_url)));
-    }, [images])
 
     const theme = createTheme({
         palette: {
@@ -52,7 +47,7 @@ export default function App() {
             columns: settings.search_image_list_columns,
             tag_limit: settings.tag_search_result_limit,
             full_res_search: settings.full_resolution_preview,
-            images: image_set, set_images
+            images: images, set_images
         }),
 
         "Datasets": [

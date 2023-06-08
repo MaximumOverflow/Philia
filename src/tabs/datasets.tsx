@@ -1,4 +1,4 @@
-import React, {CSSProperties, ReactElement, useEffect, useRef, useState} from "react";
+import React, {CSSProperties, ReactElement, useEffect, useMemo, useRef, useState} from "react";
 import {
     Accordion, AccordionDetails, AccordionSummary, Autocomplete, Box, Button, Checkbox,
     Dialog, DialogActions, DialogContent,
@@ -6,12 +6,12 @@ import {
     IconButton,
     ImageList,
     ImageListItem,
-    ImageListItemBar, LinearProgress, List, ListItem, ListItemIcon, ListItemText,
+    ImageListItemBar, LinearProgress, List, ListItem, ListItemIcon, ListItemText, MenuItem,
     Stack, Switch, TextField,
     Typography
 } from "@mui/material";
 import {
-    AddBox,
+    AddBox, Article,
     Check,
     Close, CropDin,
     DataArray,
@@ -25,9 +25,10 @@ import {
 } from "@mui/icons-material";
 import {invoke} from "@tauri-apps/api";
 import {convertFileSrc} from "@tauri-apps/api/tauri";
-import {Post} from "./search";
 import {open} from "@tauri-apps/api/dialog";
 import {Settings} from "./settings";
+import {SavedImage} from "./images";
+import {PaginatedImageList, SavedImagePreview} from "../components/images";
 
 export interface Dataset {
     name: string,
@@ -42,6 +43,7 @@ export interface Dataset {
         },
         image: {
             apply_letterboxing: boolean,
+            target_format: "Png" | "Jpg" | "Bmp" | "Gif" | "Qoi" | "WebP",
             resize: [number, number],
         },
         training: {
@@ -54,7 +56,7 @@ export interface Dataset {
 interface Props {
     settings: Settings,
     datasets: Dataset[],
-    all_images: [string, Post][],
+    all_images: Map<string, SavedImage>,
     set_datasets: (datasets: Dataset[]) => void,
 }
 
@@ -191,7 +193,7 @@ function DatasetPreview(
 
 interface EditProps {
     settings: Settings,
-    all_images: [string, Post][],
+    all_images: Map<string, SavedImage>,
     datasets: Dataset[], index: number,
     set_edit: (index: number) => void,
     set_datasets: (datasets: Dataset[]) => void,
@@ -210,6 +212,7 @@ const EMPTY_DATASET: Dataset = {
         },
         image: {
             apply_letterboxing: false,
+            target_format: "Png",
             resize: [0, 0],
         },
         training: {
@@ -218,8 +221,6 @@ const EMPTY_DATASET: Dataset = {
         }
     }
 }
-
-const IMAGE_PLACEHOLDER_STYLE: CSSProperties = {minHeight: "256px"};
 
 function EditDatasetDialog(props: EditProps): ReactElement {
     const dataset = props.datasets[props.index] || EMPTY_DATASET;
@@ -234,6 +235,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
     const [remove_underscores, set_remove_underscores] = useState(dataset.settings.tags.remove_underscores);
 
     const [resize, set_resize] = useState(dataset.settings.image.resize);
+    const [format, set_format] = useState(dataset.settings.image.target_format);
     const [apply_letterboxing, set_apply_letterboxing] = useState(dataset.settings.image.apply_letterboxing);
 
     const [keyword, set_keyword] = useState(dataset.settings.training.keyword);
@@ -243,6 +245,16 @@ function EditDatasetDialog(props: EditProps): ReactElement {
     
     const [tags, set_tags] = useState([] as string[]);
     const [tag_categories, set_tag_categories] = useState([] as string[]);
+
+    const images_to_show = useMemo(() => {
+        const to_show = [] as SavedImage[];
+        for(const path of images) {
+            const image = props.all_images.get(path);
+            if(image !== undefined) to_show.push(image);
+        }
+
+        return to_show;
+    }, [images, props.all_images]);
     
     useEffect(() => {
         set_name(dataset.name);
@@ -255,6 +267,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
         set_escape_parentheses(dataset.settings.tags.escape_parentheses);
         
         set_resize(dataset.settings.image.resize);
+        set_format(dataset.settings.image.target_format);
         set_apply_letterboxing(dataset.settings.image.apply_letterboxing);
         
         set_keyword(dataset.settings.training.keyword);
@@ -287,6 +300,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                     },
                     image: {
                         resize,
+                        target_format: format,
                         apply_letterboxing,
                     },
                     training: {
@@ -300,6 +314,8 @@ function EditDatasetDialog(props: EditProps): ReactElement {
         props.set_datasets(datasets);
         close();
     }
+    
+    const container = useRef(null as any);
     
     return (
         <Dialog open={props.index !== -1} maxWidth="lg" fullWidth>
@@ -316,7 +332,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                     </IconButton>
                 </Stack>
             </DialogTitle>
-            <DialogContent>
+            <DialogContent ref={container}>
                 <List>
                     <ListItem>
                         <TextField
@@ -345,46 +361,20 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                 </Stack>
                             </AccordionSummary>
                             <AccordionDetails>
-                                <ImageList variant="masonry" cols={4} gap={8} style={{padding: ".5em"}}>
-                                    {images.map(path => (
-                                        <ImageListItem key={path}>
-                                            <Stack>
-                                                {
-                                                    props.settings.image_loading_mode === "Eager"
-                                                        ?   <img
-                                                                src={convertFileSrc(path)} alt={path}
-                                                                loading="eager" className="hover_scale"
-                                                            />
-                                                        :   <img
-                                                                src={convertFileSrc(path)} alt={path}
-                                                                loading="lazy" className="hover_scale"
-                                                                style={IMAGE_PLACEHOLDER_STYLE}
-                                                                onLoad={e => {
-                                                                    e.currentTarget.setAttribute("style", "");
-                                                                    e.currentTarget.onload = null;
-                                                                }}
-                                                            />
-                                                }
-                                            </Stack>
-                                            <ImageListItemBar
-                                                title={path.split("/").pop()}
-                                                actionIcon={(
-                                                    <Stack direction="row">
-                                                        <IconButton 
-                                                            disabled={thumbnail === path}
-                                                            onClick={() => set_thumbnail(path)}
-                                                        >
-                                                            <Image/>
-                                                        </IconButton>
-                                                        {/*<IconButton>*/}
-                                                        {/*    <Edit/>*/}
-                                                        {/*</IconButton>*/}
-                                                    </Stack>
-                                                )}
-                                            />
-                                        </ImageListItem>
-                                    ))}
-                                </ImageList>
+                                <PaginatedImageList
+                                    images={images_to_show}
+                                    images_per_page={24}
+                                    container={container}
+                                    update_dependencies={[thumbnail]}
+                                    actionIcon={image => (
+                                        <IconButton
+                                            disabled={thumbnail === image.file_path}
+                                            onClick={() => set_thumbnail(image.file_path)}
+                                        >
+                                            <Image/>
+                                        </IconButton>
+                                    )}
+                                />
                                 <ManageImagesDialog
                                     settings={props.settings}
                                     open={manage_images} set_open={set_manage_images}
@@ -509,6 +499,28 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                             />
                                         </Stack>
                                     </ListItem>
+
+                                    <ListItem>
+                                        <ListItemIcon><Article color="primary"/></ListItemIcon>
+                                        <ListItemText primary="Target image format"/>
+                                        <TextField
+                                            select
+                                            label="Format"
+                                            color="primary"
+                                            variant="standard"
+                                            style={{minWidth: 250}}
+                                            value={format} onChange={(e) => {
+                                                set_format(e.target.value as any)
+                                            }}
+                                        >
+                                            <MenuItem value={"Png"}>Png</MenuItem>
+                                            <MenuItem value={"Jpg"}>Jpeg</MenuItem>
+                                            <MenuItem value={"Bmp"}>Bmp</MenuItem>
+                                            <MenuItem value={"Gif"}>Gif</MenuItem>
+                                            <MenuItem value={"Qoi"}>Qoi</MenuItem>
+                                            <MenuItem value={"WebP"}>WebP</MenuItem>
+                                        </TextField>
+                                    </ListItem>
                                 </List>
                             </AccordionDetails>
                         </Accordion>
@@ -556,7 +568,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
 
 interface ManageImagesProps {
     settings: Settings,
-    all_images: [string, Post][],
+    all_images: Map<string, SavedImage>,
     
     open: boolean,
     set_open: (open: boolean) => void,
@@ -565,10 +577,8 @@ interface ManageImagesProps {
     set_images: (images: string[]) => void,
 }
 
-const IMAGE_CHECKBOX_STYLE: CSSProperties = {position: "absolute", bottom: 0, right: 0};
-
 function ManageImagesDialog(props: ManageImagesProps): ReactElement {
-    const [, set_last_update] = useState(0);
+    const [last_update, set_last_update] = useState(0);
     const selected = useRef(new Set<string>());
     
     const close = () => {
@@ -581,7 +591,7 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
     };
     
     const select_all = () => {
-        selected.current = new Set(props.all_images.map(([path, ]) => path));
+        selected.current = new Set(props.all_images.keys());
         set_last_update(Date.now());
     };
     
@@ -591,23 +601,34 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
     };
     
     useEffect(() => {
-        const existing = new Set(props.all_images.map(([path, ]) => path));
-        selected.current = new Set(props.images.filter(path => existing.has(path)));
+        selected.current = new Set(props.images.filter(path => props.all_images.has(path)));
         set_last_update(Date.now());
     }, [props.images]);
     
-    const toggle_selection = (path: string) => {
-        if(selected.current.has(path)) selected.current.delete(path);
+    const toggle_selection = (path: string, value: boolean) => {
+        if(!value) selected.current.delete(path);
         else selected.current.add(path);
         set_last_update(Date.now());
     };
     
+    const images = useMemo(() => {
+        const images = [] as SavedImage[];
+        for(const path of props.images) {
+            const image = props.all_images.get(path);
+            if(image !== undefined) images.push(image);
+        }
+        
+        return images;
+    }, [props.images, props.all_images]);
+    
+    const container = useRef(null as any);
+    
     return (
-        <Dialog open={props.open} maxWidth="md" fullWidth>
+        <Dialog open={props.open} maxWidth="xl" fullWidth>
             <DialogTitle>
                 <Stack direction="row" alignItems="center">
                     <Typography width="100%" fontSize="22px">
-                        Add images
+                        Manage images
                     </Typography>
                     
                     <IconButton onClick={select_all}>
@@ -627,43 +648,19 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
                     </IconButton>
                 </Stack>
             </DialogTitle>
-            <DialogContent>
-                <ImageList variant="masonry" cols={4} gap={8} style={{padding: ".5em"}}>
-                    {props.all_images.map(([path, ], i) => {
-                        const toggle = () => toggle_selection(path);
-                        const filename = path.split("/").pop();
-                        return (
-                            <ImageListItem key={path} className="hover_scale">
-                                {
-                                    props.settings.image_loading_mode === "Eager"
-                                        ?   <img
-                                                src={convertFileSrc(path)} alt={path}
-                                                loading="eager" className="hover_scale"
-                                            />
-                                        :   <img
-                                                src={convertFileSrc(path)} alt={path}
-                                                loading="lazy" className="hover_scale"
-                                                style={IMAGE_PLACEHOLDER_STYLE}
-                                                onLoad={e => {
-                                                    e.currentTarget.setAttribute("style", "");
-                                                    e.currentTarget.onload = null;
-                                                }}
-                                            />
-                                }
-                                <ImageListItemBar
-                                    title={filename}
-                                    actionIcon={
-                                        <Checkbox
-                                            style={IMAGE_CHECKBOX_STYLE}
-                                            checked={selected.current.has(path)}
-                                            onChange={toggle}
-                                        />
-                                    }
-                                />
-                            </ImageListItem>
-                        )
-                    })}
-                </ImageList>
+            <DialogContent ref={container}>
+                <PaginatedImageList 
+                    images={images} 
+                    images_per_page={64}
+                    container={container} 
+                    update_dependencies={[last_update]}
+                    actionIcon={image => (
+                        <Checkbox
+                            checked={selected.current.has(image.file_path)} key="select"
+                            onChange={(_, checked) => toggle_selection(image.file_path, checked)}
+                        />
+                    )}
+                />
             </DialogContent>
         </Dialog>
     )

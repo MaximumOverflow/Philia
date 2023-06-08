@@ -41,6 +41,8 @@ fn parse_search_result(result) {
             hash: result.file?.md5,
             resource_url: result.file?.url,
             preview_url: result.preview?.url,
+            resource_dimensions: [result.file?.width ?? 0, result.file?.height ?? 0],
+            preview_dimensions: [result.preview?.width ?? 0, result.preview?.height ?? 0],
         });
     }
     
