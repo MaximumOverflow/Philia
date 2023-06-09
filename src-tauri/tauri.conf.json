@@ -79,13 +79,15 @@
     },
     "windows": [
       {
-        "fullscreen": false,
-        "width": 1280,
-        "height": 720,
-        "minWidth": 900,
-        "minHeight": 600,
-        "resizable": true,
-        "title": "Philia"
+        "width": 400,
+        "height": 200,
+        "center": true,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "label": "splashscreen",
+        "title": "Splashscreen",
+        "url": "splashscreen.html"
       }
     ]
   }

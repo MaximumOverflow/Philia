@@ -1,13 +1,13 @@
-use tauri::{AppHandle, Manager, State};
-use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use rayon::iter::{ParallelIterator, IntoParallelRefIterator};
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageFormat};
-use image::imageops::FilterType;
-use itertools::Itertools;
+use serde::{Deserialize, Serialize};
+use crate::context::GlobalContext;
 use philia::prelude::{Post, Tags};
-use crate::images::get_images_state;
+use image::imageops::FilterType;
+use tauri::{AppHandle, Manager};
+use std::path::{Path, PathBuf};
+use std::collections::HashSet;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dataset {
@@ -59,6 +59,19 @@ pub struct ImageSettings {
 	pub apply_letterboxing: bool,
 	#[serde(default = "Default::default")]
 	pub resize: (u32, u32),
+	#[serde(default = "Default::default")]
+	pub target_format: TargetImageFormat,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub enum TargetImageFormat {
+	#[default]
+	Png, 
+	Jpg, 
+	Bmp,
+	Gif, 
+	Qoi,
+	WebP,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -69,50 +82,27 @@ pub struct TrainingSettings {
 	pub repetitions: u32,
 }
 
-pub type DatasetsState = Mutex<Vec<Dataset>>;
-
-fn get_dataset_state(handle: &AppHandle) -> State<'_, DatasetsState> {
-	match handle.try_state() {
-		Some(datasets) => datasets,
-		None => {
-			let datasets = 'block: {
-				let Ok(json) = std::fs::read("datasets.json") else {
-					break 'block DatasetsState::default();
-				};
-
-				let Ok(datasets) = serde_json::from_slice(&json) else {
-					break 'block DatasetsState::default();
-				};
-
-				DatasetsState::new(datasets)
-			};
-
-			handle.manage(datasets);
-			handle.state::<DatasetsState>()
-		},
-	}
-}
-
 #[tauri::command]
 pub async fn get_datasets(handle: AppHandle) -> Vec<Dataset> {
-	let datasets = get_dataset_state(&handle);
-	let datasets = datasets.lock().unwrap();
-	datasets.clone()
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	context.datasets.clone()
 }
 
 #[tauri::command]
 pub async fn new_dataset(handle: AppHandle) -> Vec<Dataset> {
-	let datasets = get_dataset_state(&handle);
-	let mut datasets = datasets.lock().unwrap();
-	datasets.push(Dataset::new("New Dataset".into()));
-	save_datasets(&datasets);
-	datasets.clone()
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	context.datasets.push(Dataset::new("New Dataset".into()));
+	save_datasets(&context.datasets);
+	context.datasets.clone()
 }
 
 #[tauri::command]
 pub async fn del_dataset(index: usize, handle: AppHandle) -> Vec<Dataset> {
-	let datasets = get_dataset_state(&handle);
-	let mut datasets = datasets.lock().unwrap();
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	let datasets = &mut context.datasets;
 	if index < datasets.len() {
 		datasets.remove(index);
 	}
@@ -122,8 +112,9 @@ pub async fn del_dataset(index: usize, handle: AppHandle) -> Vec<Dataset> {
 
 #[tauri::command]
 pub async fn set_dataset(index: usize, dataset: Dataset, handle: AppHandle) -> Vec<Dataset> {
-	let datasets = get_dataset_state(&handle);
-	let mut datasets = datasets.lock().unwrap();
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	let datasets = &mut context.datasets;
 	datasets[index] = dataset;
 	save_datasets(&datasets);
 	datasets.clone()
@@ -135,9 +126,10 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 		return Err("Path does not exist".into());
 	}
 
-	let datasets = get_dataset_state(&handle);
-	let datasets = datasets.lock().unwrap();
-	let Some(dataset) = datasets.get(index) else {
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+
+	let Some(dataset) = context.datasets.get(index) else {
 		return Err("Invalid dataset index".into());
 	};
 
@@ -148,18 +140,16 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 	});
 
 	std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-
-	let images = get_images_state(&handle);
-	let images = images.lock().unwrap();
-	let images = &*images;
-
-	for (image_path, post) in dataset.images.iter().map(|i| (Path::new(i), images.get(i))) {
-		let Some(post) = post else { continue };
-		let Some(file_stem) = image_path.file_stem() else { continue; };
-		let Some(file_name) = image_path.file_name() else { continue; };
-
-		let image_destination = path.as_path().join(file_name);
-		let mut image = image::open(image_path).map_err(|e| e.to_string())?;
+	
+	dataset.images.par_iter().filter_map(|i| context.images.get(Path::new(i))).for_each(|post| {
+		let Some(file_stem) = post.file_path.file_stem() else { return };
+		let mut image = match image::open(&post.file_path) {
+			Ok(image) => image,
+			Err(err) => {
+				eprintln!("{:?}", err);
+				return;
+			}
+		};
 
 		if dataset.settings.image.apply_letterboxing {
 			image = apply_letterboxing(&image);
@@ -172,15 +162,32 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 			(width, height) => image = image.resize_exact(width, height, FilterType::Lanczos3),
 		}
 
-		image
-			.save_with_format(image_destination, ImageFormat::Png)
-			.map_err(|e| e.to_string())?;
+		let (target_format, extension) = match dataset.settings.image.target_format {
+			TargetImageFormat::Png =>  (ImageFormat::Png, "png"),
+			TargetImageFormat::Bmp =>  (ImageFormat::Bmp, "bmp"),
+			TargetImageFormat::Gif =>  (ImageFormat::Gif, "gif"),
+			TargetImageFormat::Qoi =>  (ImageFormat::Qoi, "qoi"),
+			TargetImageFormat::Jpg =>  (ImageFormat::Jpeg, "jpeg"),
+			TargetImageFormat::WebP => (ImageFormat::WebP, "webp"),
+		};
 
-		let tags = get_tag_string(post, &dataset.settings.tags);
+		let mut image_destination = path.as_path().join(file_stem);
+		image_destination.set_extension(extension);
+
+		if let Err(err) = image.save_with_format(image_destination, target_format) {
+			eprintln!("{:?}", err);
+			return;
+		}
+
+		let tags = get_tag_string(&post.info, &dataset.settings.tags);
 		let mut tags_destination = path.as_path().join(file_stem);
 		tags_destination.set_extension("json");
-		std::fs::write(tags_destination, tags).map_err(|e| e.to_string())?;
-	}
+
+		if let Err(err) = std::fs::write(tags_destination, tags) {
+			eprintln!("{:?}", err);
+			return;
+		}
+	});
 
 	Ok(())
 }

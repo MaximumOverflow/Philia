@@ -4,11 +4,13 @@ import {
     ListItem,
     ListItemButton,
     ListItemIcon,
-    ListItemText, ListSubheader, MenuItem, Stack, Switch, TextField, Typography
+    ListItemText, ListSubheader, Stack, Switch, TextField, Typography
 } from "@mui/material";
 import {DarkMode, Folder, FormatListNumbered, Image, ViewColumn} from "@mui/icons-material";
 import {Source} from "./search"
 import {open} from "@tauri-apps/api/dialog";
+import {refresh_saved_images, SavedImage} from "./images";
+import {invoke} from "@tauri-apps/api";
 
 export interface Settings {
     dark_mode: boolean,
@@ -17,7 +19,6 @@ export interface Settings {
     tag_search_result_limit: number,
     search_image_list_columns: number,
     full_resolution_preview: boolean,
-    image_loading_mode: "Eager" | "Lazy",
 
     download_folder: string,
 }
@@ -28,7 +29,6 @@ export const SETTINGS_PLACEHOLDER: Settings = {
     tag_search_result_limit: 0,
     search_image_list_columns: 0,
     full_resolution_preview: false,
-    image_loading_mode: "Eager",
     download_folder: ""
 }
 
@@ -36,6 +36,7 @@ interface Props {
     sources: Source[],
     settings: Settings,
     set_settings: (settings: Settings) => void,
+    set_images: (images: Map<string, SavedImage>) => void,
 }
 
 export function Settings(props: Props): ReactElement {
@@ -80,27 +81,6 @@ function GeneralSettings(props: Props): ReactElement {
                         props.set_settings(settings);
                     }}
                 />
-            </ListItem>
-
-            <ListItem>
-                <ListItemIcon><Image color="primary"/></ListItemIcon>
-                <ListItemText primary="Image loading mode"/>
-                <TextField
-                    select
-                    label="Mode"
-                    color="primary"
-                    variant="standard"
-                    style={{minWidth: 250}}
-                    value={props.settings.image_loading_mode}
-                    onChange={(e) => {
-                        const settings = {...props.settings};
-                        settings.image_loading_mode = e.target.value as any;
-                        props.set_settings(settings);
-                    }}
-                >
-                    <MenuItem value={"Eager"}>Eager</MenuItem>
-                    <MenuItem value={"Lazy"}>Lazy</MenuItem>
-                </TextField>
             </ListItem>
         </List>
     );
@@ -189,6 +169,8 @@ function DownloadSettings(props: Props): ReactElement {
                             const settings = {...props.settings};
                             settings.download_folder = dir as string;
                             props.set_settings(settings);
+                            await invoke("set_settings", {settings});
+                            props.set_images(await refresh_saved_images());
                         }
                     } finally {}
                 }}

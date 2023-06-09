@@ -27,6 +27,7 @@ fn parse_search_result(result) {
                 "safe" => "Safe",
                 "questionable" => "Questionable",
                 "explicit" => "Explicit",
+                _ => "General",
             },
             hash: result.hash,
             resource_url: result.file_url,

@@ -1,20 +1,19 @@
 use philia::client::{DEFAULT_USER_AGENT, make_async_http_client};
 use png::{BitDepth, ColorType, Compression, Encoder};
-use tauri::{AppHandle, Manager, State};
-use crate::settings::{SettingsState};
+use crate::context::GlobalContext;
 use std::io::{BufWriter, Cursor};
 use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Manager, State};
 use philia::prelude::Post;
 use image::ImageFormat;
 use std::fs::File;
 
 #[tauri::command]
-pub async fn download_posts(
-	posts: Vec<Post>, handle: AppHandle, download_settings: State<'_, SettingsState>,
-) -> Result<Vec<String>, String> {
+pub async fn download_posts(posts: Vec<Post>, handle: AppHandle) -> Result<Vec<String>, String> {
 	let download_folder = {
-		let settings = download_settings.lock().unwrap();
-		settings.download_folder.clone()
+		let context = handle.state::<GlobalContext>();
+		let context = context.lock().unwrap();
+		context.settings.download_folder.clone()
 	};
 
 	let count = posts.len() as f32;

@@ -1,13 +1,11 @@
 use philia::prelude::{SearchOrder, Post, Client, TagOrder};
 use philia::source::{FeatureFlags, ScriptableSource};
 use std::collections::{HashMap, HashSet};
-use tauri::{AppHandle, Manager, State};
 use serde::{Deserialize, Serialize};
+use crate::context::GlobalContext;
+use tauri::{AppHandle, Manager};
 use std::cmp::Ordering;
-use std::sync::Mutex;
 use std::path::Path;
-
-type SourcesState = Mutex<HashMap<String, (Client, Option<HashSet<String>>)>>;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SourceInfo {
@@ -18,18 +16,12 @@ pub struct SourceInfo {
 
 #[tauri::command]
 pub async fn get_available_sources(handle: AppHandle) -> Vec<SourceInfo> {
-	let (state, no_fetch) = get_sources_state(&handle);
-
-	if !no_fetch {
-		let sources = fetch_sources();
-		let mut state = state.lock().unwrap();
-		*state = sources;
-	}
-
-	let state = state.lock().unwrap();
-	let mut sources: Vec<_> = state
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	let mut sources: Vec<_> = context
+		.sources
 		.iter()
-		.map(|(name, (client, _))| {
+		.map(|(name, client)| {
 			let flags = client.source().feature_flags();
 			SourceInfo {
 				name: name.clone(),
@@ -45,9 +37,9 @@ pub async fn get_available_sources(handle: AppHandle) -> Vec<SourceInfo> {
 
 #[tauri::command]
 pub async fn get_source_tags(source: String, handle: AppHandle) -> Option<Vec<String>> {
-	let (state, _) = get_sources_state(&handle);
-	let state = state.lock().unwrap();
-	let (_, tags) = state.get(&source)?;
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	let tags = context.source_tags.get(&source)?;
 
 	match tags {
 		None => None,
@@ -62,10 +54,9 @@ pub async fn get_source_tags(source: String, handle: AppHandle) -> Option<Vec<St
 #[tauri::command]
 pub async fn fetch_source_tags(source: String, handle: AppHandle) -> Result<Vec<String>, String> {
 	let client = {
-		let (state, _) = get_sources_state(&handle);
-		let state = state.lock().unwrap();
-
-		let Some((client, _)) = state.get(&source) else {
+		let context = handle.state::<GlobalContext>();
+		let context = context.lock().unwrap();
+		let Some(client) = context.sources.get(&source) else {
 			return Err("Source not found".into());
 		};
 
@@ -85,9 +76,9 @@ pub async fn fetch_source_tags(source: String, handle: AppHandle) -> Result<Vec<
 		let _ = handle.emit_all("fetch_source_tags_count", all_tags.len());
 	}
 
-	let (state, _) = get_sources_state(&handle);
-	let mut state = state.lock().unwrap();
-	let (_, tags) = state.get_mut(&source).unwrap();
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	let tags = context.source_tags.get_mut(&source).unwrap();
 
 	*tags = Some(HashSet::from_iter(all_tags.iter().cloned()));
 
@@ -100,10 +91,9 @@ pub async fn search(
 	source: String, page: u32, limit: u32, order: SearchOrder, tags: Vec<String>, handle: AppHandle,
 ) -> Result<(Vec<Post>, Vec<String>), String> {
 	let client = {
-		let (state, _) = get_sources_state(&handle);
-		let state = state.lock().unwrap();
-
-		let Some((client, _)) = state.get(&source) else {
+		let context = handle.state::<GlobalContext>();
+		let context = context.lock().unwrap();
+		let Some(client) = context.sources.get(&source) else {
 			return Err("Source not found".into());
 		};
 
@@ -125,10 +115,9 @@ pub async fn search(
 		.await
 		.map_err(|e| e.to_string())?;
 
-	let (state, _) = get_sources_state(&handle);
-	let mut state = state.lock().unwrap();
-
-	let Some((_, tags)) = state.get_mut(&source) else {
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	let Some(tags) = context.source_tags.get_mut(&source) else {
 		return Ok((posts, vec![]));
 	};
 
@@ -141,17 +130,6 @@ pub async fn search(
 	let mut tags = Vec::from_iter(tags.iter().cloned());
 	tags.sort_by(sort_tags);
 	Ok((posts, tags))
-}
-
-pub fn get_sources_state(handle: &AppHandle) -> (State<'_, SourcesState>, bool) {
-	match handle.try_state::<SourcesState>() {
-		Some(state) => (state, false),
-		None => {
-			let sources = fetch_sources();
-			handle.manage(SourcesState::new(sources));
-			(handle.state(), true)
-		},
-	}
 }
 
 fn fetch_sources() -> HashMap<String, (Client, Option<HashSet<String>>)> {

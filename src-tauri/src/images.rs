@@ -1,96 +1,52 @@
-use crate::settings::SettingsState;
-use tauri::{AppHandle, Manager, State};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::ops::Deref;
+use serde::{Deserialize, Serialize};
+use crate::context::GlobalContext;
+use cached::{Cached, SizedCache};
+use image::imageops::FilterType;
+use tauri::{AppHandle, Manager};
+use std::path::{Path, PathBuf};
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use philia::prelude::Post;
-use std::sync::Mutex;
 use itertools::Itertools;
 use philia::data::Tags;
-use png::Decoder;
+use image::ImageFormat;
+use std::io::Cursor;
+use base64::Engine;
 
-pub type ImagesState = Mutex<HashMap<String, Post>>;
-
-pub fn get_images_state(handle: &AppHandle) -> State<'_, ImagesState> {
-	match handle.try_state() {
-		Some(datasets) => datasets,
-		None => {
-			handle.manage(ImagesState::new(HashMap::default()));
-
-			let images = handle.state();
-			let settings = handle.state();
-			refresh_images_impl(&images, &settings);
-
-			images
-		},
-	}
-}
-
-pub fn refresh_images_impl(
-	state: &State<'_, ImagesState>, download_settings: &State<'_, SettingsState>,
-) {
-	let images = 'block: {
-		let download_settings = download_settings.lock().unwrap();
-
-		let Ok(read_dir) = std::fs::read_dir(&download_settings.download_folder) else {
-			break 'block HashMap::default();
-		};
-
-		let images = read_dir
-			.filter_map(|entry| match entry {
-				Err(_) => None,
-				Ok(entry) => {
-					let path = entry.path();
-					let file = File::open(&path).ok()?;
-					let decoder = Decoder::new(file);
-					let reader = decoder.read_info().ok()?;
-
-					let metadata = reader
-						.info()
-						.utf8_text
-						.iter()
-						.find(|chunk| chunk.keyword == "post_metadata")?;
-
-					let json = metadata.get_text().ok()?;
-					let post = serde_json::from_str::<Post>(&json).ok()?;
-
-					let key = path.to_string_lossy().replace('\\', "/");
-					Some((key, post))
-				},
-			})
-			.collect();
-
-		images
-	};
-
-	let mut state = state.lock().unwrap();
-	*state = images;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Image {
+	pub info: Post,
+	pub file_path: PathBuf,
+	pub preview_data: String,
 }
 
 #[tauri::command]
-pub async fn get_images(handle: AppHandle) -> Vec<(String, Post)> {
-	let images = get_images_state(&handle);
-	let images = images.lock().unwrap();
-	let mut images = images.iter().map(|(k, v)| (k.clone(), v.clone())).collect_vec();
-	images.sort_by(|(a, _), (b, _)| a.cmp(b));
+pub async fn get_images(handle: AppHandle) -> Vec<Image> {
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	let mut images = context.images.values().cloned().collect_vec();
+	images.sort_by(|a, b| a.file_path.cmp(&b.file_path));
 	images
 }
 
 #[tauri::command]
-pub async fn refresh_images(handle: AppHandle) -> Vec<(String, Post)> {
-	let images = handle.state();
-	let settings = handle.state();
-	refresh_images_impl(&images, &settings);
-	get_images(handle).await
+pub async fn refresh_images(handle: AppHandle) -> Vec<Image> {
+	let context = handle.state::<GlobalContext>();
+	let mut context = context.lock().unwrap();
+	context.refresh_images();
+
+	let mut images = context.images.values().cloned().collect_vec();
+	images.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+	images
 }
 
 #[tauri::command]
 pub async fn get_image_tags(
-	image_paths: Vec<String>, ignored_categories: Option<HashSet<String>>, handle: AppHandle,
+	image_paths: Vec<PathBuf>, ignored_categories: Option<HashSet<String>>, handle: AppHandle,
 ) -> Vec<String> {
-	let images = get_images_state(&handle);
-	let images = images.lock().unwrap();
-	let images = images.deref();
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	let images = &context.images;
 
 	let tags: HashSet<String> = image_paths
 		.into_iter()
@@ -98,7 +54,7 @@ pub async fn get_image_tags(
 			let post = images.get(&image)?;
 
 			if let Some(ignored_categories) = &ignored_categories {
-				match &post.tags {
+				match &post.info.tags {
 					Tags::All(a) => Some(a.clone()),
 					Tags::Categorized(c) => {
 						let mut tags = vec![];
@@ -112,7 +68,7 @@ pub async fn get_image_tags(
 					},
 				}
 			} else {
-				let tags = post.tags.iter().map(str::to_string).collect_vec();
+				let tags = post.info.tags.iter().map(str::to_string).collect_vec();
 				Some(tags)
 			}
 		})
@@ -126,15 +82,15 @@ pub async fn get_image_tags(
 
 #[tauri::command]
 pub async fn get_image_categories(image_paths: Vec<String>, handle: AppHandle) -> Vec<String> {
-	let images = get_images_state(&handle);
-	let images = images.lock().unwrap();
-	let images = images.deref();
+	let context = handle.state::<GlobalContext>();
+	let context = context.lock().unwrap();
+	let images = &context.images;
 
 	let categories: HashSet<String> = image_paths
 		.into_iter()
 		.filter_map(|image| {
-			let post = images.get(&image)?;
-			match &post.tags {
+			let post = images.get(Path::new(&image))?;
+			match &post.info.tags {
 				Tags::All(_) => None,
 				Tags::Categorized(c) => Some(c.keys().cloned()),
 			}
@@ -145,4 +101,59 @@ pub async fn get_image_categories(image_paths: Vec<String>, handle: AppHandle) -
 	let mut categories = Vec::from_iter(categories);
 	categories.sort();
 	categories
+}
+
+#[tauri::command]
+pub async fn generate_image_preview(
+	path: PathBuf, size: u32, handle: AppHandle,
+) -> Result<String, String> {
+	let cache = handle.state::<PreviewCache>();
+	cache.get_or_generate_image_preview(path, size)
+}
+
+#[derive(Clone)]
+pub struct PreviewCache {
+	cache: Arc<Mutex<SizedCache<(PathBuf, u32), String>>>,
+}
+
+impl Default for PreviewCache {
+	fn default() -> Self {
+		Self {
+			cache: Arc::new(Mutex::new(SizedCache::with_size(4096))),
+		}
+	}
+}
+
+impl PreviewCache {
+	pub fn get_or_generate_image_preview(
+		&self, path: PathBuf, size: u32,
+	) -> Result<String, String> {
+		let key = (path, size);
+
+		{
+			let mut cache = self.cache.lock().unwrap();
+			if let Some(preview) = cache.cache_get(&key) {
+				return Ok(preview.clone());
+			}
+		}
+
+		// println!("Generating preview of size {} for {:?}...", key.1, key.0);
+		let mut image = image::open(&key.0).map_err(|e| e.to_string())?;
+
+		let mut buffer = vec![];
+		image = image.resize(size, size, FilterType::Gaussian);
+		image
+			.write_to(&mut Cursor::new(&mut buffer), ImageFormat::Png)
+			.map_err(|e| e.to_string())?;
+
+		let mut data = String::from("data:image/png;base64,");
+		base64::engine::general_purpose::STANDARD.encode_string(&buffer, &mut data);
+
+		{
+			let mut cache = self.cache.lock().unwrap();
+			cache.cache_set(key, data.clone());
+		}
+
+		Ok(data)
+	}
 }

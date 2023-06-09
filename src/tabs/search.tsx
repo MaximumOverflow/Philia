@@ -17,6 +17,7 @@ import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {listen} from "@tauri-apps/api/event";
 import {Dataset} from "./datasets";
 import {writeTextFile} from "@tauri-apps/api/fs";
+import {refresh_saved_images, SavedImage} from "./images";
 
 export interface Source {
     name: string,
@@ -40,8 +41,8 @@ interface Props {
     tag_limit: number,
     full_res_search: boolean,
 
-    images: Set<string>;
-    set_images: (images: [string, Post][]) => void,
+    images: Map<string, SavedImage>,
+    set_images: (images: Map<string, SavedImage>) => void,
 }
 
 export interface Post {
@@ -153,7 +154,7 @@ interface ViewProps {
     selected: number[],
     set_selected: (selected: number[]) => void,
 
-    images: Set<string>,
+    images: Map<string, SavedImage>,
     tags: string[] | null | undefined,
     search: () => Promise<any[] | undefined>,
 }
@@ -446,7 +447,7 @@ interface ControlsProps {
     
     source: Source,
     set_source: (source: Source) => void,
-    set_images: (images: [string, Post][]) => void,
+    set_images: (images: Map<string, SavedImage>) => void,
 
     page: number,
     set_page: (page: number) => void,
@@ -575,7 +576,7 @@ interface DialogProps {
     datasets: Dataset[],
     set_datasets: (datasets: Dataset[]) => void,
     
-    set_images: (images: [string, Post][]) => void,
+    set_images: (images: Map<string, SavedImage>) => void,
 }
 
 function DownloadDialog(props: DialogProps): ReactElement {
@@ -613,7 +614,7 @@ function DownloadDialog(props: DialogProps): ReactElement {
                 props.set_datasets(await invoke("set_dataset", {dataset: selected, index: dataset}));
             }
             
-            const images = await invoke<[string, Post][]>("refresh_images");
+            const images = await refresh_saved_images();
             props.set_images(images);
             props.set_selected([]);
         }
