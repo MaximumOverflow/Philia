@@ -3,16 +3,13 @@ import {
     Button,
     Dialog, DialogActions,
     DialogContent,
-    DialogTitle, IconButton,
-    ImageList,
-    Stack
+    DialogTitle, Stack
 } from "@mui/material";
 import {Post} from "./search";
 import {removeFile} from "@tauri-apps/api/fs";
 import {invoke} from "@tauri-apps/api";
 import { Settings } from "./settings";
-import {SavedImagePreview} from "../components/images";
-import {Delete} from "@mui/icons-material";
+import {PaginatedImageList} from "../components/images";
 
 interface Props {
     settings: Settings,
@@ -40,29 +37,13 @@ export function Images(props: Props): ReactElement {
     }
     
     const images = useMemo(() => {
-        const images = [] as ReactElement[];
-        for(const image of props.images.values()) {
-            images.push(
-                <
-                    SavedImagePreview
-                    image={image} key={image.file_path} 
-                    scale_on_hover={true} load_when_visible={true}
-                    actionIcon={(
-                        <IconButton onClick={() => set_to_delete(image.file_path)}>
-                            <Delete/>
-                        </IconButton>
-                    )}
-                />
-            );
-        }
+        const images = [...props.images.values()];
 
         return (
-            <ImageList
-                variant="masonry"
-                cols={props.settings.search_image_list_columns}
-                gap={8} style={{padding: ".5em"}}>
-                {images}
-            </ImageList>
+            <PaginatedImageList 
+                images={images} images_per_page={128}
+                fixed_page_buttons={true} load_when_visible={true}
+            />
         );
     }, [props.images]);
     

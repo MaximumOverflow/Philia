@@ -118,7 +118,7 @@ impl Context {
 				let file_path = PathBuf::from(path.to_string_lossy().replace('\\', "/"));
 				let preview = self
 					.preview_cache
-					.get_or_generate_image_preview(path, 128)
+					.get_or_generate_image_preview(path, 256)
 					.unwrap_or_default();
 
 				let image = Image {

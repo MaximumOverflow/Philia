@@ -4,11 +4,13 @@ import {
     ListItem,
     ListItemButton,
     ListItemIcon,
-    ListItemText, ListSubheader, MenuItem, Stack, Switch, TextField, Typography
+    ListItemText, ListSubheader, Stack, Switch, TextField, Typography
 } from "@mui/material";
 import {DarkMode, Folder, FormatListNumbered, Image, ViewColumn} from "@mui/icons-material";
 import {Source} from "./search"
 import {open} from "@tauri-apps/api/dialog";
+import {refresh_saved_images, SavedImage} from "./images";
+import {invoke} from "@tauri-apps/api";
 
 export interface Settings {
     dark_mode: boolean,
@@ -34,6 +36,7 @@ interface Props {
     sources: Source[],
     settings: Settings,
     set_settings: (settings: Settings) => void,
+    set_images: (images: Map<string, SavedImage>) => void,
 }
 
 export function Settings(props: Props): ReactElement {
@@ -166,6 +169,8 @@ function DownloadSettings(props: Props): ReactElement {
                             const settings = {...props.settings};
                             settings.download_folder = dir as string;
                             props.set_settings(settings);
+                            await invoke("set_settings", {settings});
+                            props.set_images(await refresh_saved_images());
                         }
                     } finally {}
                 }}

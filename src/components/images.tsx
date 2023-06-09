@@ -1,11 +1,9 @@
-import React, {MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState} from "react";
+import React, {CSSProperties, MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState} from "react";
 import {
     Button,
-    Checkbox,
-    IconButton,
     ImageList,
     ImageListItem,
-    ImageListItemBar,
+    ImageListItemBar, Paper,
     Stack,
     TextField,
     Tooltip
@@ -54,22 +52,18 @@ export function SavedImagePreview(props: ImageProps): ReactElement {
 interface ListProps {
     images: SavedImage[],
     images_per_page: number,
+    
     preview_size?: number,
-
     scale_on_hover?: boolean,
     update_dependencies?: any[]
     load_when_visible?: boolean,
+    fixed_page_buttons?: boolean,
     container?: MutableRefObject<any>
     actionIcon?: (image: SavedImage) => ReactElement,
 }
 
 const SCROLL_TOP: any = {
     top: 0,
-    behavior: "smooth",
-};
-
-const SCROLL_BOTTOM: any = {
-    bottom: 0,
     behavior: "smooth",
 };
 
@@ -141,8 +135,38 @@ export function PaginatedImageList(props: ListProps): ReactElement {
         }
     }
     
+    if(props.fixed_page_buttons) {
+        const style: CSSProperties = {
+            zIndex: 10,
+            left: "50%",
+            marginTop: "32px",
+            padding: "10px",
+            position: "fixed",
+            transform: "translateX(-50%)"
+        };
+        
+        return (
+            <Stack>
+                <Paper style={style}>
+                    <Stack direction="row" justifyContent="center" spacing={1}>
+                        {buttons}
+                    </Stack>
+                </Paper>
+                <ImageList
+                    variant="masonry"
+                    cols={4} gap={8} 
+                    style={{
+                        marginTop: "0",
+                        padding: "0 .5em .5em .5em"
+                    }}>
+                    {images}
+                </ImageList>
+            </Stack>
+        );
+    }
+    
     return (
-        <Stack onScroll={e => console.log(e.currentTarget)}>
+        <Stack>
             <ImageList
                 variant="masonry"
                 cols={4} gap={8} style={{padding: ".5em"}}>

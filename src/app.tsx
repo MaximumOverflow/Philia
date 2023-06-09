@@ -70,6 +70,7 @@ export default function App() {
         "Settings": [
             <Settings
                 sources={SOURCES}
+                set_images={set_images}
                 settings={settings} set_settings={set_settings}
             />,
             null,

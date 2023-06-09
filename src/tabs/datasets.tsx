@@ -28,7 +28,7 @@ import {convertFileSrc} from "@tauri-apps/api/tauri";
 import {open} from "@tauri-apps/api/dialog";
 import {Settings} from "./settings";
 import {SavedImage} from "./images";
-import {PaginatedImageList, SavedImagePreview} from "../components/images";
+import {PaginatedImageList} from "../components/images";
 
 export interface Dataset {
     name: string,
@@ -611,16 +611,7 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
         set_last_update(Date.now());
     };
     
-    const images = useMemo(() => {
-        const images = [] as SavedImage[];
-        for(const path of props.images) {
-            const image = props.all_images.get(path);
-            if(image !== undefined) images.push(image);
-        }
-        
-        return images;
-    }, [props.images, props.all_images]);
-    
+    const images = useMemo(() => [...props.all_images.values()], [props.all_images]);
     const container = useRef(null as any);
     
     return (
@@ -652,7 +643,8 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
                 <PaginatedImageList 
                     images={images} 
                     images_per_page={64}
-                    container={container} 
+                    container={container}
+                    fixed_page_buttons={true}
                     update_dependencies={[last_update]}
                     actionIcon={image => (
                         <Checkbox
