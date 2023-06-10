@@ -3,10 +3,11 @@
 	windows_subsystem = "windows"
 )]
 
-use std::time::{Duration, SystemTime};
-use tauri::{AppHandle, command, Manager, WindowBuilder, WindowUrl};
-use crate::context::{Context, GlobalContext};
 use crate::images::PreviewCache;
+use std::time::{Duration, SystemTime};
+use crate::context::{Context, GlobalContext};
+use tauri::{AppHandle, command, Manager, WindowBuilder, WindowUrl};
+use crate::update::check_for_updates;
 
 mod sources;
 mod download;
@@ -14,6 +15,7 @@ mod settings;
 mod datasets;
 mod images;
 mod context;
+mod update;
 
 #[command]
 async fn initialize(app: AppHandle) {
@@ -47,6 +49,8 @@ fn main() {
 		std::env::set_current_dir(value).expect("Invalid work directory.");
 	}
 	
+	println!("Update result: {:#?}", check_for_updates());
+	
 	tauri::Builder::default()
 		.invoke_handler(tauri::generate_handler![
 			initialize,
@@ -68,14 +72,14 @@ fn main() {
 			settings::get_settings,
 			settings::set_settings,
 		])
-		.setup(|_handle| {
+		.setup(|_app| {
 			#[cfg(debug_assertions)]
 			{
 				use tauri::Manager;
-				let window = _handle.get_window("splashscreen").unwrap();
+				let window = _app.get_window("splashscreen").unwrap();
 				window.open_devtools();
 			}
-
+			
 			Ok(())
 		})
 		.run(tauri::generate_context!())

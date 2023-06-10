@@ -46,9 +46,9 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: Windows-x86_64
+          name: x86_64-pc-windows-gnu_debug
           path: |
-            artifacts/nsis/*
+            src-tauri/target/release/Philia.exe
             
       - name: Archive Linux artifacts
         if: matrix.platform == 'ubuntu-20.04'
