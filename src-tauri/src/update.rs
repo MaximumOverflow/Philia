@@ -1,22 +1,54 @@
-use tempfile::TempDir;
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
 use std::error::Error;
+use std::path::Path;
 use std::fs::File;
+use reqwest::Url;
+
+const EXE: &str = match cfg!(debug_asserts) {
+	false => "Philia.exe",
+	true => "Philia-Debug.exe",
+};
+
+const ASSET: &str = match cfg!(debug_asserts) {
+	false => "x86_64-pc-windows-gnu.zip",
+	true => "x86_64-pc-windows-gnu_debug.zip",
+};
 
 pub fn check_for_updates() -> Result<(), Box<dyn Error>> {
 	if !cfg!(windows) {
 		return Err("Updates not supported on this OS.".into());
 	}
 	
-	const ASSET: &str = match cfg!(debug_asserts) {
-		false => "x86_64-pc-windows-gnu.zip",
-		true => "x86_64-pc-windows-gnu_debug.zip",
-	};
+	// if cfg!(debug_assertions) {
+	// 	return Ok(());
+	// }
 
-	const EXE: &str = match cfg!(debug_asserts) {
-		false => "Philia.exe",
-		true => "Philia-Debug.exe",
-	};
+	let dir = Path::new("temp");
+	std::fs::create_dir_all(dir).unwrap();
+	let zip = dir.join(ASSET);
+	
+	if !fetch_latest_nightly(&zip)? {
+		return Ok(());
+	}
+	
+	println!("Extracting update files to {:?}...", dir);
+	self_update::Extract::from_source(&zip)
+		.archive(self_update::ArchiveKind::Zip)
+		.extract_file(dir, EXE)?;
 
+	self_update::Move::from_source(&dir.join(EXE))
+		.to_dest(&std::env::current_exe()?)?;
+
+	tauri::api::dialog::blocking::message::<tauri::Wry>(
+		None, "Success.",
+		"The update completed successfully.\nThe application will now close.",
+	);
+
+	std::process::exit(0);
+}
+
+fn fetch_latest_stable(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 	let releases = self_update::backends::github::ReleaseList::configure()
 		.repo_owner("MaximumOverflow")
 		.repo_name("Philia-GUI")
@@ -29,37 +61,94 @@ pub fn check_for_updates() -> Result<(), Box<dyn Error>> {
 
 	let version = self_update::cargo_crate_version!();
 	if !self_update::version::bump_is_greater(&version, &latest.version).unwrap_or(false) {
-		return Ok(());
+		return Ok(false);
 	}
 
-	let confirm = tauri::api::dialog::blocking::ask::<tauri::Wry>(
-		None, "New update found.", 
-		"A new version of Philia is available.\nWould you like to download it?",
-	);
-
-	if !confirm {
-		return Ok(());
+	if !confirm() {
+		return Ok(false);
 	}
 
-	let dir = TempDir::new()?;
-	let zip = dir.path().join(&asset.name);
-	let zip_file = File::create(&zip)?;
+	let zip_file = File::create(out_path)?;
+	
+	println!("Downloading the latest stable build...");
 	self_update::Download::from_url(&asset.download_url)
-		.set_header(tauri::http::header::ACCEPT, "application/octet-stream".parse()?)
+		.set_header(reqwest::header::ACCEPT, "application/octet-stream".parse()?)
 		.show_progress(true)
 		.download_to(zip_file)?;
+	
+	Ok(true)
+}
 
-	self_update::Extract::from_source(&zip)
-		.archive(self_update::ArchiveKind::Zip)
-		.extract_file(&dir.path(), EXE)?;
+fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
+	if !cfg!(windows) {
+		return Err("Updates not supported on this OS.".into());
+	}
 
-	self_update::Move::from_source(&dir.path().join(EXE))
-		.to_dest(&std::env::current_exe()?)?;
+	let client = reqwest::blocking::Client::builder()
+		.user_agent(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
+		.build()?;
 
-	tauri::api::dialog::blocking::message::<tauri::Wry>(
-		None, "Success.",
-		"The update completed successfully.\nThe application will now close.",
-	);
+	#[derive(Debug, Deserialize)]
+	struct Runs {
+		#[serde(default = "Default::default")]
+		workflow_runs: Vec<Run>,
+	}
 
-	std::process::exit(0);
+	#[derive(Debug, Deserialize)]
+	struct Run {
+		#[serde(default = "Default::default")]
+		id: i64,
+		#[serde(default = "Default::default")]
+		name: String,
+		#[serde(default = "Default::default")]
+		status: String,
+		#[serde(default = "Default::default")]
+		conclusion: Option<String>,
+		#[serde(default = "Default::default")]
+		created_at: DateTime<Utc>,
+		#[serde(default = "Default::default")]
+		artifacts_url: String,
+	}
+
+	{
+		let url = Url::parse("https://api.github.com/repos/MaximumOverflow/Philia-GUI/actions/runs").unwrap();
+		let result = client.get(url).send()?;
+		let json = result.bytes()?.to_vec();
+
+		let runs = serde_json::from_slice::<Runs>(&json)?.workflow_runs;
+		let Some(latest) = runs.into_iter().find(|run| {
+			let conclusion = run.conclusion.as_ref().map(String::as_str);
+			run.name == "Continuous Build" && run.status == "completed" && conclusion == Some("success")
+		}) else {
+			return Ok(false);
+		};
+
+		println!("BUILD_ID: {}", env!("BUILD_ID"));
+		println!("LATEST_BUILD_ID: {}", latest.id);
+		if latest.id.to_string() == env!("BUILD_ID") {
+			return Ok(false);
+		}
+
+		latest
+	};
+	
+	if !confirm() {
+		return Ok(false);
+	}
+
+	println!("Downloading the latest nightly build...");
+	let url = Url::parse("https://nightly.link/MaximumOverflow/Philia-GUI/workflows/continuous_build/continous_build/Windows-x86_64.zip").unwrap();
+	let result = client.get(url).send()?;
+	let bytes = result.bytes()?.to_vec();
+	
+	println!("Writing update zip to {:?}...", out_path);
+	std::fs::write(out_path, bytes)?;
+	Ok(true)
+}
+
+fn confirm() -> bool {
+	tauri::api::dialog::blocking::ask::<tauri::Wry>(
+		None, "New update found.",
+		"A new version of Philia is available.\nWould you like to download it?",
+	)
 }
