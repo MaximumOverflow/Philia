@@ -4,10 +4,10 @@
 // )]
 
 use crate::images::PreviewCache;
+use crate::update::check_for_updates;
 use std::time::{Duration, SystemTime};
 use crate::context::{Context, GlobalContext};
 use tauri::{AppHandle, command, Manager, WindowBuilder, WindowUrl};
-use crate::update::check_for_updates;
 
 mod sources;
 mod download;
@@ -49,7 +49,9 @@ fn main() {
 		std::env::set_current_dir(value).expect("Invalid work directory.");
 	}
 	
-	println!("Update result: {:#?}", check_for_updates());
+	if let Err(err) = check_for_updates() {
+		println!("Update error: {:?}", err);
+	}
 	
 	tauri::Builder::default()
 		.invoke_handler(tauri::generate_handler![
@@ -75,7 +77,6 @@ fn main() {
 		.setup(|_app| {
 			#[cfg(debug_assertions)]
 			{
-				use tauri::Manager;
 				let window = _app.get_window("splashscreen").unwrap();
 				window.open_devtools();
 			}

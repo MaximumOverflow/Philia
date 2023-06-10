@@ -132,50 +132,6 @@ pub async fn search(
 	Ok((posts, tags))
 }
 
-fn fetch_sources() -> HashMap<String, (Client, Option<HashSet<String>>)> {
-	let _ = std::fs::create_dir_all("./cache");
-	let _ = std::fs::create_dir_all("./sources");
-	let Ok(entries) = std::fs::read_dir("./sources") else {
-		return Default::default();
-	};
-
-	HashMap::from_iter(entries.filter_map(|entry| match entry {
-		Err(_) => None,
-		Ok(entry) => {
-			let path = entry.path();
-
-			let Some(extension) = path.extension() else {
-				return None;
-			};
-
-			if extension != "rhai" {
-				return None;
-			}
-
-			let name = path.file_stem().unwrap().to_string_lossy().to_string();
-			let Ok(code) = std::fs::read_to_string(&path) else {
-				eprintln!("Could not read source {path:?}");
-				return None;
-			};
-
-			let Ok(source) = ScriptableSource::new(&name, &code) else {
-				eprintln!("Could not compile source {path:?}");
-				return None;
-			};
-
-			let tags = 'tags: {
-				let Ok(file) = std::fs::read(Path::new("./cache").join(format!("{}_tags.json", name))) else {
-					break 'tags Default::default();
-				};
-
-				serde_json::from_slice(&file).unwrap_or_default()
-			};
-
-			Some((name.clone(), (Client::new(source), tags)))
-		},
-	}))
-}
-
 fn sort_tags(a: &String, b: &String) -> Ordering {
 	let a = match a.chars().next().unwrap_or_default().is_alphabetic() {
 		true => a.as_str(),

@@ -4,6 +4,8 @@ use std::error::Error;
 use std::path::Path;
 use std::fs::File;
 use reqwest::Url;
+use tempfile::TempDir;
+use crate::settings::{Settings, UpdateBranch};
 
 const EXE: &str = match cfg!(debug_asserts) {
 	false => "Philia.exe",
@@ -20,15 +22,22 @@ pub fn check_for_updates() -> Result<(), Box<dyn Error>> {
 		return Err("Updates not supported on this OS.".into());
 	}
 	
-	// if cfg!(debug_assertions) {
-	// 	return Ok(());
-	// }
+	if cfg!(debug_assertions) {
+		return Ok(());
+	}
+	
+	let settings = serde_json::from_slice::<Settings>(&std::fs::read("./settings.json")?)?;
 
-	let dir = Path::new("temp");
-	std::fs::create_dir_all(dir).unwrap();
+	let dir = TempDir::new()?;
+	let dir = dir.path();
 	let zip = dir.join(ASSET);
 	
-	if !fetch_latest_nightly(&zip)? {
+	let do_update = match settings.update_branch {
+		UpdateBranch::Stable => fetch_latest_stable(&zip)?,
+		UpdateBranch::Nightly => fetch_latest_nightly(&zip)?,
+	};
+	
+	if !do_update {
 		return Ok(());
 	}
 	
@@ -104,10 +113,6 @@ fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 		status: String,
 		#[serde(default = "Default::default")]
 		conclusion: Option<String>,
-		#[serde(default = "Default::default")]
-		created_at: DateTime<Utc>,
-		#[serde(default = "Default::default")]
-		artifacts_url: String,
 	}
 
 	{
