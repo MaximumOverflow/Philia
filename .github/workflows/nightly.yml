@@ -2,7 +2,7 @@ name: 'Build Nightly'
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   BUILD_ID: ${{ github.run_id }}
