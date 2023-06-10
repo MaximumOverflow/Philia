@@ -3,13 +3,14 @@ import {
     Button,
     Dialog, DialogActions,
     DialogContent,
-    DialogTitle, Stack
+    DialogTitle, IconButton, Stack
 } from "@mui/material";
 import {Post} from "./search";
 import {removeFile} from "@tauri-apps/api/fs";
 import {invoke} from "@tauri-apps/api";
 import { Settings } from "./settings";
 import {PaginatedImageList} from "../components/images";
+import {Delete} from "@mui/icons-material";
 
 interface Props {
     settings: Settings,
@@ -43,6 +44,11 @@ export function Images(props: Props): ReactElement {
             <PaginatedImageList 
                 images={images} images_per_page={128}
                 fixed_page_buttons={true} load_when_visible={true}
+                actionIcon={image => (
+                    <IconButton onClick={() => delete_image(image.file_path)}>
+                        <Delete/>
+                    </IconButton>
+                )}
             />
         );
     }, [props.images]);

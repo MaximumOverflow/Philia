@@ -1,4 +1,4 @@
-import React, {CSSProperties, MutableRefObject, ReactElement, useEffect, useMemo, useRef, useState} from "react";
+import React, {CSSProperties, MutableRefObject, ReactElement, useEffect, useRef, useState} from "react";
 import {
     Button,
     ImageList,
@@ -38,7 +38,7 @@ export function SavedImagePreview(props: ImageProps): ReactElement {
     
     return (
         <ImageListItem key={path} className={props.scale_on_hover ? "hover_scale" : ""}>
-            <img ref={ref} src={src} alt={path} loading="lazy" onLoad={e => {
+            <img ref={ref} src={src} alt={path} loading="lazy" onLoad={() => {
                 if(stage === 0 && props.load_when_visible) set_stage(1);
             }}/>
             <ImageListItemBar
@@ -144,6 +144,9 @@ export function PaginatedImageList(props: ListProps): ReactElement {
             position: "fixed",
             transform: "translateX(-50%)"
         };
+        
+        if(buttons.length === 1)
+            style.display = "none";
         
         return (
             <Stack>
