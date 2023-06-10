@@ -1,14 +1,22 @@
-name: 'Continuous Build'
-on: [push]
+name: 'Build Nightly'
+on:
+  push:
+    branches:
+      - main
+
+env:
+  BUILD_ID: ${{ github.run_id }}
 
 jobs:
   Build-Philia:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     strategy:
       fail-fast: false
       matrix:
         platform: [windows-latest, ubuntu-20.04, macos-latest]
 
     runs-on: ${{matrix.platform}}
+    
     steps:
       - uses: actions/checkout@v3
         
@@ -26,13 +34,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
           
-      - name: Install frontend dependencies
-        run: npm install
-        
-      - name: Restore cached Rust dependencies
+      - name: Restore cached dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri"
+          cache-directories: "node_modules"
+          
+      - name: Install frontend dependencies
+        run: npm install
         
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -48,7 +57,7 @@ jobs:
         with:
           name: Windows-x86_64
           path: |
-            artifacts/nsis/*
+            src-tauri/target/release/Philia.exe
             
       - name: Archive Linux artifacts
         if: matrix.platform == 'ubuntu-20.04'

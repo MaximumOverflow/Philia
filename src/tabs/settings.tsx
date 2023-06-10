@@ -4,9 +4,9 @@ import {
     ListItem,
     ListItemButton,
     ListItemIcon,
-    ListItemText, ListSubheader, Stack, Switch, TextField, Typography
+    ListItemText, ListSubheader, MenuItem, Stack, Switch, TextField, Typography
 } from "@mui/material";
-import {DarkMode, Folder, FormatListNumbered, Image, ViewColumn} from "@mui/icons-material";
+import {DarkMode, Folder, FormatListNumbered, Image, Update, ViewColumn} from "@mui/icons-material";
 import {Source} from "./search"
 import {open} from "@tauri-apps/api/dialog";
 import {refresh_saved_images, SavedImage} from "./images";
@@ -21,6 +21,7 @@ export interface Settings {
     full_resolution_preview: boolean,
 
     download_folder: string,
+    update_branch: "Stable" | "Nightly",
 }
 
 export const SETTINGS_PLACEHOLDER: Settings = {
@@ -29,7 +30,8 @@ export const SETTINGS_PLACEHOLDER: Settings = {
     tag_search_result_limit: 0,
     search_image_list_columns: 0,
     full_resolution_preview: false,
-    download_folder: ""
+    download_folder: "",
+    update_branch: "Stable",
 }
 
 interface Props {
@@ -38,6 +40,8 @@ interface Props {
     set_settings: (settings: Settings) => void,
     set_images: (images: Map<string, SavedImage>) => void,
 }
+
+const W_250_STYLE = {minWidth: 250};
 
 export function Settings(props: Props): ReactElement {
     return (
@@ -82,6 +86,30 @@ function GeneralSettings(props: Props): ReactElement {
                     }}
                 />
             </ListItem>
+
+            <ListItem>
+                <ListItemIcon><Update color="primary"/></ListItemIcon>
+                <ListItemText 
+                    primary="Update branch"
+                    secondary="This change will be applied at the next restart."
+                />
+                <TextField
+                    select
+                    label="Branch"
+                    color="primary"
+                    variant="standard"
+                    value={props.settings.update_branch}
+                    onChange={(e) => {
+                        const settings = {...props.settings};
+                        settings.update_branch = e.target.value as any;
+                        props.set_settings(settings);
+                    }}
+                    style={W_250_STYLE}
+                >
+                    <MenuItem value={"Stable"}>Stable</MenuItem>
+                    <MenuItem value={"Nightly"}>Nightly</MenuItem>
+                </TextField>
+            </ListItem>
         </List>
     );
 }
@@ -96,7 +124,7 @@ function SearchSettings(props: Props): ReactElement {
             {/*    <TextField */}
             {/*        select size="small" variant="standard" */}
             {/*        label="Source" defaultValue={props.sources[0]} */}
-            {/*        style={{minWidth: 250}}*/}
+            {/*        style={W_250_STYLE}*/}
             {/*    >*/}
             {/*        {props.sources.map((s, i) => <MenuItem key={i} value={s}>{s}</MenuItem>)}*/}
             {/*    </TextField>*/}
@@ -114,7 +142,7 @@ function SearchSettings(props: Props): ReactElement {
                         settings.tag_search_result_limit = parseInt(e.target.value) || 10;
                         props.set_settings(settings);
                     }}
-                    style={{minWidth: 250}}
+                    style={W_250_STYLE}
                 />
             </ListItem>
 
@@ -130,7 +158,7 @@ function SearchSettings(props: Props): ReactElement {
                         settings.search_image_list_columns = parseInt(e.target.value) || 6;
                         props.set_settings(settings);
                     }}
-                    style={{minWidth: 250}}
+                    style={W_250_STYLE}
                 />
             </ListItem>
 

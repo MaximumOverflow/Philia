@@ -14,6 +14,16 @@ pub struct Settings {
 	pub full_resolution_preview: bool,
 
 	pub download_folder: PathBuf,
+	
+	#[serde(default = "Default::default")]
+	pub update_branch: UpdateBranch,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub enum UpdateBranch {
+	#[default]
+	Stable,
+	Nightly,
 }
 
 impl Settings {
@@ -32,6 +42,7 @@ impl Default for Settings {
 			tag_search_result_limit: 10,
 			search_image_list_columns: 6,
 			full_resolution_preview: false,
+			update_branch: UpdateBranch::Stable,
 
 			download_folder: {
 				fn get_local_download_dir() -> Result<PathBuf, std::io::Error> {
