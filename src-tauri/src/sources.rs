@@ -1,11 +1,10 @@
-use philia::prelude::{SearchOrder, Post, Client, TagOrder};
-use philia::source::{FeatureFlags, ScriptableSource};
-use std::collections::{HashMap, HashSet};
+use philia::prelude::{SearchOrder, Post, TagOrder};
 use serde::{Deserialize, Serialize};
 use crate::context::GlobalContext;
+use philia::source::FeatureFlags;
 use tauri::{AppHandle, Manager};
+use std::collections::HashSet;
 use std::cmp::Ordering;
-use std::path::Path;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SourceInfo {

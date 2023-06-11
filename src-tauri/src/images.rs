@@ -1,8 +1,9 @@
+use crate::datasets::{get_tag_string, TagSettings};
+use tauri::{AppHandle, ClipboardManager, Manager};
 use serde::{Deserialize, Serialize};
 use crate::context::GlobalContext;
 use cached::{Cached, SizedCache};
 use image::imageops::FilterType;
-use tauri::{AppHandle, Manager};
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -101,6 +102,18 @@ pub async fn get_image_categories(image_paths: Vec<String>, handle: AppHandle) -
 	let mut categories = Vec::from_iter(categories);
 	categories.sort();
 	categories
+}
+
+#[tauri::command]
+pub async fn copy_post_tags(post: Post, handle: AppHandle) {
+	let tags = get_tag_string(&post, &TagSettings::default());
+	if handle.clipboard_manager().write_text(tags).is_ok()  {
+		let id = &handle.config().tauri.bundle.identifier;
+		let _ = tauri::api::notification::Notification::new(id)
+			.title("Tags copied")
+			.body("The post's tags have been added to your clipboard.")
+			.show();
+	}
 }
 
 #[tauri::command]

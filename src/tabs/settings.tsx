@@ -9,8 +9,8 @@ import {
 import {DarkMode, Folder, FormatListNumbered, Image, Update, ViewColumn} from "@mui/icons-material";
 import {Source} from "./search"
 import {open} from "@tauri-apps/api/dialog";
-import {refresh_saved_images, SavedImage} from "./images";
 import {invoke} from "@tauri-apps/api";
+import {SavedImages} from "../bindings/images";
 
 export interface Settings {
     dark_mode: boolean,
@@ -38,7 +38,7 @@ interface Props {
     sources: Source[],
     settings: Settings,
     set_settings: (settings: Settings) => void,
-    set_images: (images: Map<string, SavedImage>) => void,
+    set_saved_images: (images: SavedImages) => void,
 }
 
 const W_250_STYLE = {minWidth: 250};
@@ -198,7 +198,7 @@ function DownloadSettings(props: Props): ReactElement {
                             settings.download_folder = dir as string;
                             props.set_settings(settings);
                             await invoke("set_settings", {settings});
-                            props.set_images(await refresh_saved_images());
+                            props.set_saved_images(await SavedImages.refresh());
                         }
                     } finally {}
                 }}

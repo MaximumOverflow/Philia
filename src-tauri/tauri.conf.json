@@ -29,9 +29,17 @@
         "removeFile": true,
         "scope": ["**"]
       },
+      "clipboard": {
+        "all": false,
+        "writeText": true,
+        "readText": false
+      },
       "protocol": {
         "asset": true,
         "assetScope": ["**"]
+      },
+      "notification": {
+        "all": true
       }
     },
     "bundle": {

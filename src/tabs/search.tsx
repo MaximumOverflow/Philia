@@ -17,7 +17,7 @@ import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
 import {listen} from "@tauri-apps/api/event";
 import {Dataset} from "./datasets";
 import {writeTextFile} from "@tauri-apps/api/fs";
-import {refresh_saved_images, SavedImage} from "./images";
+import {SavedImages} from "../bindings/images";
 
 export interface Source {
     name: string,
@@ -41,8 +41,8 @@ interface Props {
     tag_limit: number,
     full_res_search: boolean,
 
-    images: Map<string, SavedImage>,
-    set_images: (images: Map<string, SavedImage>) => void,
+    saved_images: SavedImages,
+    set_images: (images: SavedImages) => void,
 }
 
 export interface Post {
@@ -119,17 +119,17 @@ export function Search(props: Props): ReactElement[] {
             searching={searching}
             tags={tags}
             results={results}
-            images={props.images}
+            saved_images={props.saved_images}
             columns={props.columns}
             tag_limit={props.tag_limit}
             full_res_search={props.full_res_search}
-            
+            set_saved_images={props.set_images}
             query={query} set_query={set_query}
             selected={selected} set_selected={set_selected}
         />,
         <SearchControls 
             selected={selected} set_selected={set_selected}
-            set_images={props.set_images}
+            set_saved_images={props.set_images}
             tags={tags} set_tags={set_tags}
             page={page} set_page={set_page}
             order={order} set_order={set_order}
@@ -154,7 +154,9 @@ interface ViewProps {
     selected: number[],
     set_selected: (selected: number[]) => void,
 
-    images: Map<string, SavedImage>,
+    saved_images: SavedImages,
+    set_saved_images: (images: SavedImages) => void,
+    
     tags: string[] | null | undefined,
     search: () => Promise<any[] | undefined>,
 }
@@ -163,7 +165,7 @@ const IMAGE_VIEW_STYLE: CSSProperties = {maxHeight: "75vh", objectFit: "contain"
 
 const IMAGE_VIEW_TAG_STYLE: CSSProperties = {display: "inline-block", padding: 2};
 const IMAGE_CHECKBOX_STYLE: CSSProperties = {position: "absolute", bottom: 0, right: 0};
-const IMAGE_VIEW_TAGS_STYLE: CSSProperties = {maxWidth: "30em", overflow: "auto", maxHeight: "75vh"};
+const IMAGE_VIEW_TAGS_STYLE: CSSProperties = {maxWidth: "30em", overflow: "auto", maxHeight: "70vh"};
 const IMAGE_CHECKMARK_STYLE: CSSProperties = {position: "absolute", top: 4, right: 4, color: "green"};
 const IMAGE_NO_CHECKMARK_STYLE: CSSProperties = {position: "absolute", top: 4, right: 4, display: "none"};
 
@@ -325,7 +327,23 @@ export function SearchView(props: ViewProps): ReactElement {
                 <DialogContent style={{maxHeight: "80vh", width: "fit-content"}}>
                     <Stack direction="row" spacing={2}>
                         <Box>{post_view_media}</Box>
-                        {post_view_tags}
+                        <Stack spacing={1} alignItems="center">
+                            {post_view_tags}
+                            <Stack direction="row" spacing={1}>
+                                <Button variant="contained" onClick={async () => {
+                                    await invoke("copy_post_tags", {post: post_view});
+                                }}>
+                                    Copy tags
+                                </Button>
+                                <Button variant="contained" onClick={async () => {
+                                    await invoke("download_posts", {posts: [post_view]});
+                                    const images = await SavedImages.refresh();
+                                    props.set_saved_images(images);
+                                }}>
+                                    Download
+                                </Button>
+                            </Stack>
+                        </Stack>
                     </Stack>
                 </DialogContent>
             </Dialog>
@@ -378,7 +396,7 @@ function PostPreview(i: number, post: Post, set_post_view: (post: Post) => void,
                     }}
                 />
                 
-                <Check style={props.images.has(post.resource_url) ? IMAGE_CHECKMARK_STYLE : IMAGE_NO_CHECKMARK_STYLE}/>
+                <Check style={props.saved_images.has(post.resource_url) ? IMAGE_CHECKMARK_STYLE : IMAGE_NO_CHECKMARK_STYLE}/>
 
                 <Checkbox 
                     style={IMAGE_CHECKBOX_STYLE}
@@ -447,7 +465,7 @@ interface ControlsProps {
     
     source: Source,
     set_source: (source: Source) => void,
-    set_images: (images: Map<string, SavedImage>) => void,
+    set_saved_images: (images: SavedImages) => void,
 
     page: number,
     set_page: (page: number) => void,
@@ -549,14 +567,14 @@ export function SearchControls(props: ControlsProps): ReactElement {
                 {props.selected.length === 0 ? "Download" : "Download selected"}
             </Button>
             
-            <DownloadDialog 
-                is_open={open_download} 
-                close={close_download} 
+            <DownloadDialog
+                is_open={open_download}
+                close={close_download}
                 posts={props.results}
                 selected={props.selected}
                 controls={props}
                 datasets={props.datasets} set_datasets={props.set_datasets}
-                set_images={props.set_images} set_selected={props.set_selected}
+                set_saved_images={props.set_saved_images} set_selected={props.set_selected}
             />
             {NoTagsDialog(props.source, props.tags, props.set_tags)}
         </Stack>
@@ -576,7 +594,7 @@ interface DialogProps {
     datasets: Dataset[],
     set_datasets: (datasets: Dataset[]) => void,
     
-    set_images: (images: Map<string, SavedImage>) => void,
+    set_saved_images: (images: SavedImages) => void,
 }
 
 function DownloadDialog(props: DialogProps): ReactElement {
@@ -614,8 +632,8 @@ function DownloadDialog(props: DialogProps): ReactElement {
                 props.set_datasets(await invoke("set_dataset", {dataset: selected, index: dataset}));
             }
             
-            const images = await refresh_saved_images();
-            props.set_images(images);
+            const images = await SavedImages.refresh();
+            props.set_saved_images(images);
             props.set_selected([]);
         }
         catch (e) {

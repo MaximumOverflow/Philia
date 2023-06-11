@@ -16,7 +16,8 @@ pub async fn download_posts(posts: Vec<Post>, handle: AppHandle) -> Result<Vec<S
 		context.settings.download_folder.clone()
 	};
 
-	let count = posts.len() as f32;
+	let count = posts.len();
+	let handle_2 = handle.clone();
 	let progress = Arc::new(Mutex::new(0f32));
 
 	let promises: Vec<_> = posts
@@ -30,7 +31,7 @@ pub async fn download_posts(posts: Vec<Post>, handle: AppHandle) -> Result<Vec<S
 					($val: expr) => {{
 						let mut progress = progress.lock().unwrap();
 						let _ = handle
-							.emit_all("download_progress", ((*progress / count) * 100.0).trunc());
+							.emit_all("download_progress", ((*progress / count as f32) * 100.0).trunc());
 						*progress += 1.0;
 						return $val;
 					}};
@@ -125,6 +126,22 @@ pub async fn download_posts(posts: Vec<Post>, handle: AppHandle) -> Result<Vec<S
 		if let Ok(Ok(path)) = handle.await {
 			paths.push(path.to_string_lossy().replace('\\', "/"));
 		}
+	}
+
+	let id = &handle_2.config().tauri.bundle.identifier;
+	if paths.len() != count {
+		let _ = tauri::api::notification::Notification::new(id)
+			.title(format!("All posts have been downloaded."))
+			.body(format!("Successfully downloaded {} posts.", paths.len()))
+			.show();
+	} else {
+		let _ = tauri::api::notification::Notification::new(id)
+			.title(format!("Downloaded {} posts.", paths.len()))
+			.body(format!{
+				"Successfully downloaded {} posts.\nFailed to download {} posts.",
+				paths.len(), count - paths.len()
+			})
+			.show();
 	}
 
 	Ok(paths)

@@ -8,16 +8,16 @@ import {
     ListItemIcon, ListItemText,
     styled
 } from "@mui/material";
-import {ChevronRight, Collections, Dataset as DatasetIcon, Search, Settings, Source as SourceIcon} from "@mui/icons-material";
-import {Post, Source} from "./tabs/search";
+import {ChevronRight, Collections, Dataset as DatasetIcon, Search, Settings} from "@mui/icons-material";
+import {Source} from "./tabs/search";
 import {Dataset} from "./tabs/datasets";
-import {SavedImage} from "./tabs/images";
+import {SavedImages} from "./bindings/images";
 
 interface Props {
     open: boolean,
     sources: Source[]
     datasets: Dataset[],
-    images: Map<string, SavedImage>,
+    saved_images: SavedImages,
     set_tab: (tab: string) => void,
     set_open: (open: boolean) => void,
 }
@@ -66,7 +66,7 @@ export function Drawer(props: Props): ReactElement {
 
                 <ListItemButton onClick={() => props.set_tab("Images")}>
                     <ListItemIcon><Collections color="primary"/></ListItemIcon>
-                    <ListItemText primary="Images" secondary={`Total images: ${props.images.size}`}/>
+                    <ListItemText primary="Images" secondary={`Total images: ${props.saved_images.count}`}/>
                 </ListItemButton>
 
                 {/*<ListItemButton onClick={() => props.set_tab("Sources")} disabled>*/}

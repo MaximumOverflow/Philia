@@ -27,8 +27,8 @@ import {invoke} from "@tauri-apps/api";
 import {convertFileSrc} from "@tauri-apps/api/tauri";
 import {open} from "@tauri-apps/api/dialog";
 import {Settings} from "./settings";
-import {SavedImage} from "./images";
 import {PaginatedImageList} from "../components/images";
+import {SavedImage, SavedImages} from "../bindings/images";
 
 export interface Dataset {
     name: string,
@@ -56,7 +56,7 @@ export interface Dataset {
 interface Props {
     settings: Settings,
     datasets: Dataset[],
-    all_images: Map<string, SavedImage>,
+    saved_images: SavedImages,
     set_datasets: (datasets: Dataset[]) => void,
 }
 
@@ -89,7 +89,7 @@ export function Datasets(props: Props): ReactElement {
             
             <EditDatasetDialog
                 settings={props.settings}
-                index={edit} set_edit={set_edit} all_images={props.all_images}
+                index={edit} set_edit={set_edit} saved_images={props.saved_images}
                 datasets={props.datasets} set_datasets={props.set_datasets}
             />
             
@@ -193,7 +193,7 @@ function DatasetPreview(
 
 interface EditProps {
     settings: Settings,
-    all_images: Map<string, SavedImage>,
+    saved_images: SavedImages,
     datasets: Dataset[], index: number,
     set_edit: (index: number) => void,
     set_datasets: (datasets: Dataset[]) => void,
@@ -249,12 +249,12 @@ function EditDatasetDialog(props: EditProps): ReactElement {
     const images_to_show = useMemo(() => {
         const to_show = [] as SavedImage[];
         for(const path of images) {
-            const image = props.all_images.get(path);
+            const image = props.saved_images.get_by_file_path(path);
             if(image !== undefined) to_show.push(image);
         }
 
         return to_show;
-    }, [images, props.all_images]);
+    }, [images, props.saved_images]);
     
     useEffect(() => {
         set_name(dataset.name);
@@ -363,9 +363,9 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                             <AccordionDetails>
                                 <PaginatedImageList
                                     images={images_to_show}
-                                    images_per_page={24}
+                                    imagesPerPage={24}
                                     container={container}
-                                    update_dependencies={[thumbnail]}
+                                    updateDependencies={[thumbnail]}
                                     actionIcon={image => (
                                         <IconButton
                                             disabled={thumbnail === image.file_path}
@@ -378,7 +378,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
                                 <ManageImagesDialog
                                     settings={props.settings}
                                     open={manage_images} set_open={set_manage_images}
-                                    all_images={props.all_images} images={images} set_images={set_images}
+                                    saved_images={props.saved_images} images={images} set_images={set_images}
                                 />
                             </AccordionDetails>
                         </Accordion>
@@ -568,7 +568,7 @@ function EditDatasetDialog(props: EditProps): ReactElement {
 
 interface ManageImagesProps {
     settings: Settings,
-    all_images: Map<string, SavedImage>,
+    saved_images: SavedImages,
     
     open: boolean,
     set_open: (open: boolean) => void,
@@ -591,7 +591,7 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
     };
     
     const select_all = () => {
-        selected.current = new Set(props.all_images.keys());
+        selected.current = new Set(props.saved_images.paths());
         set_last_update(Date.now());
     };
     
@@ -601,7 +601,7 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
     };
     
     useEffect(() => {
-        selected.current = new Set(props.images.filter(path => props.all_images.has(path)));
+        selected.current = new Set(props.images.filter(path => props.saved_images.has(path)));
         set_last_update(Date.now());
     }, [props.images]);
     
@@ -611,7 +611,6 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
         set_last_update(Date.now());
     };
     
-    const images = useMemo(() => [...props.all_images.values()], [props.all_images]);
     const container = useRef(null as any);
     
     return (
@@ -641,11 +640,11 @@ function ManageImagesDialog(props: ManageImagesProps): ReactElement {
             </DialogTitle>
             <DialogContent ref={container}>
                 <PaginatedImageList 
-                    images={images} 
-                    images_per_page={64}
+                    images={props.saved_images.get_all()} 
+                    imagesPerPage={64}
                     container={container}
-                    fixed_page_buttons={true}
-                    update_dependencies={[last_update]}
+                    fixedPageButtons={true}
+                    updateDependencies={[last_update]}
                     actionIcon={image => (
                         <Checkbox
                             checked={selected.current.has(image.file_path)} key="select"

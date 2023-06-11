@@ -1,11 +1,10 @@
-use chrono::{DateTime, Utc};
+use crate::settings::{Settings, UpdateBranch};
 use serde::Deserialize;
+use tempfile::TempDir;
 use std::error::Error;
 use std::path::Path;
 use std::fs::File;
 use reqwest::Url;
-use tempfile::TempDir;
-use crate::settings::{Settings, UpdateBranch};
 
 const EXE: &str = match cfg!(debug_asserts) {
 	false => "Philia.exe",

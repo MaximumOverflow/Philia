@@ -13,26 +13,28 @@ edition = "2021"
 tauri-build = { version = "1.2", features = [] }
 
 [dependencies]
-png = "0.17.8"
-rayon = "1.7.0"
-dunce = "1.0.4"
-tokio = "1.28.2"
-image = "0.24.6"
-fxhash = "0.2.1"
-cached = "0.43.0"
-base64 = "0.21.2"
-serde_json = "1.0"
-tempfile = "3.5.0"
-itertools = "0.10.5"
+png = "0.17"
+rayon = "1.7"
+dunce = "1.0"
+tokio = "1.28"
+image = "0.24"
+fxhash = "0.2"
+cached = "0.43"
+base64 = "0.21"
+serde_json = "1"
+tempfile = "3.5"
+itertools = "0.10"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
-chrono = { version = "0.4.26", features = ["serde"] }
-reqwest = { version = "0.11.18", features = ["blocking"] }
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.11", features = ["blocking"] }
 self_update = { version = "0.36", features = ["archive-zip", "compression-flate2", "compression-zip-deflate", "compression-zip-bzip2"] }
 philia = { git = "https://github.com/MaximumOverflow/Philia", rev = "baadc182", features = ["additional_post_metadata", "scripting"] }
-tauri = { version = "1.2", features = ["dialog-all", "fs-remove-file", "fs-write-file", "path-all", "protocol-asset", "shell-open"] }
+tauri = { version = "1.2", features = ["clipboard-write-text", "dialog-all", "fs-remove-file", "fs-write-file", "notification-all", "path-all", "protocol-asset", "shell-open"] }
 
 [profile.dev.package."*"]
+strip = true
+debug = false
 opt-level = 3
 
 [features]

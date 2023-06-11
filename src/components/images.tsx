@@ -8,15 +8,17 @@ import {
     TextField,
     Tooltip
 } from "@mui/material";
-import {SavedImage} from "../tabs/images";
 import {invoke} from "@tauri-apps/api";
+import {SavedImage} from "../bindings/images";
 
 interface ImageProps {
     image: SavedImage,
     actionIcon?: ReactElement,
-    preview_size?: number,
-    scale_on_hover?: boolean,
-    load_when_visible?: boolean,
+    topElement?: ReactElement,
+    
+    previewSize?: number,
+    scaleOnHover?: boolean,
+    loadWhenVisible?: boolean,
 }
 
 export function SavedImagePreview(props: ImageProps): ReactElement {
@@ -25,41 +27,44 @@ export function SavedImagePreview(props: ImageProps): ReactElement {
 
     const [src, set_src] = useState(preview);
     const [stage, set_stage] = useState(0);
-    const [visible, ref] = props.load_when_visible
+    const [visible, ref] = props.loadWhenVisible
         ? useVisibility<HTMLImageElement>()
         : [false, null];
 
     useEffect(() => {
         if(stage === 1 && visible)
-            invoke<string>("generate_image_preview", {path, size: props.preview_size || 512})
+            invoke<string>("generate_image_preview", {path, size: props.previewSize || 512})
                 .then(src => { set_src(src); set_stage(2); })
                 .catch(console.error);
     }, [stage, visible]);
     
     return (
-        <ImageListItem key={path} className={props.scale_on_hover ? "hover_scale" : ""}>
+        <ImageListItem key={path} className={props.scaleOnHover ? "hover_scale" : ""}>
+            {props.topElement}
             <img ref={ref} src={src} alt={path} loading="lazy" onLoad={() => {
-                if(stage === 0 && props.load_when_visible) set_stage(1);
+                if(stage === 0 && props.loadWhenVisible) set_stage(1);
             }}/>
             <ImageListItemBar
                 title={path.split("/").pop()}
                 actionIcon={props.actionIcon}
             />
         </ImageListItem>
-    )
+    );
 }
 
 interface ListProps {
     images: SavedImage[],
-    images_per_page: number,
+    imagesPerPage: number,
     
-    preview_size?: number,
-    scale_on_hover?: boolean,
-    update_dependencies?: any[]
-    load_when_visible?: boolean,
-    fixed_page_buttons?: boolean,
+    previewSize?: number,
+    scaleOnHover?: boolean,
+    updateDependencies?: any[]
+    loadWhenVisible?: boolean,
+    fixedPageButtons?: boolean,
     container?: MutableRefObject<any>
+    
     actionIcon?: (image: SavedImage) => ReactElement,
+    topElement?: (image: SavedImage) => ReactElement,
 }
 
 const SCROLL_TOP: any = {
@@ -80,15 +85,15 @@ export function PaginatedImageList(props: ListProps): ReactElement {
         props.container?.current?.scrollTo(SCROLL_TOP);
     }, [page])
 
-    const offset = page * props.images_per_page;
+    const offset = page * props.imagesPerPage;
     const images = [] as ReactElement[];
-    for(let i = 0; i < props.images_per_page; i++) {
+    for(let i = 0; i < props.imagesPerPage; i++) {
         const image = props.images[i + offset];
         if(image === undefined) break;
         images.push(
             <SavedImagePreview
-                image={image} preview_size={props.preview_size} load_when_visible={props.load_when_visible}
-                key={image.file_path} scale_on_hover={props.scale_on_hover}
+                image={image} previewSize={props.previewSize} loadWhenVisible={props.loadWhenVisible}
+                key={image.file_path} scaleOnHover={props.scaleOnHover}
                 actionIcon={props.actionIcon !== undefined ? props.actionIcon(image) : undefined}
             />
         );
@@ -97,7 +102,7 @@ export function PaginatedImageList(props: ListProps): ReactElement {
     const buttons = [] as ReactElement[];
     {
         let middle_added = false;
-        const count = Math.ceil(props.images.length / props.images_per_page);
+        const count = Math.ceil(props.images.length / props.imagesPerPage);
         
         for(let i = 0; i < count; i++) {
             if(count > 6 && i >= 3 && i < count - 3) {
@@ -135,7 +140,7 @@ export function PaginatedImageList(props: ListProps): ReactElement {
         }
     }
     
-    if(props.fixed_page_buttons) {
+    if(props.fixedPageButtons) {
         const style: CSSProperties = {
             zIndex: 10,
             left: "50%",
