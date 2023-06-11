@@ -77,15 +77,15 @@ impl Context {
 
 			let tags = Path::new("./cache").join(format!("{}_tags.json", name));
 			let tags = match std::fs::read(tags) {
-				Err(_) => FxHashSet::default(),
+				Err(_) => None,
 				Ok(file) => match serde_json::from_slice(&file) {
 					Err(_) => continue,
-					Ok(tags) => tags,
+					Ok(tags) => Some(tags),
 				},
 			};
 
 			self.sources.insert(name.clone(), Client::new(source));
-			self.source_tags.insert(name, Some(tags));
+			self.source_tags.insert(name, tags);
 		}
 	}
 

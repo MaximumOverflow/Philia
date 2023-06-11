@@ -77,7 +77,10 @@ export function Search(props: Props): ReactElement[] {
             set_tags([]);
         } else {
             invoke<string[] | null>("get_source_tags", {source: source.name})
-                .then(result => set_tags(result));
+                .then(result => {
+                    console.log(result);
+                    set_tags(result);
+                });
         }
     }, [source])
     
