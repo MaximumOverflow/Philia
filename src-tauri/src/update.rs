@@ -12,8 +12,8 @@ const EXE: &str = match cfg!(debug_asserts) {
 };
 
 const ASSET: &str = match cfg!(debug_asserts) {
-	false => "x86_64-pc-windows-gnu.zip",
-	true => "x86_64-pc-windows-gnu_debug.zip",
+	false => "Windows-x86_64.zip",
+	true => "Windows-x86_64-Debug.zip",
 };
 
 pub fn check_for_updates() -> Result<(), Box<dyn Error>> {

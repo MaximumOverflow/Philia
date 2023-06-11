@@ -59,6 +59,14 @@ jobs:
           path: |
             src-tauri/target/release/Philia.exe
             
+      - name: Archive Windows artifacts
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-pc-windows-gnu
+          path: |
+            src-tauri/target/release/Philia.exe
+            
       - name: Archive Linux artifacts
         if: matrix.platform == 'ubuntu-20.04'
         uses: actions/upload-artifact@v3
