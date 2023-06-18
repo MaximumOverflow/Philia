@@ -18,7 +18,7 @@ export class SavedImages {
         this.images_by_url = new Map<string, SavedImage>();
         this.images_by_path = new Map<string, SavedImage>();
         for(const image of images) {
-            this.images_by_url.set(image.file_path, image);
+            this.images_by_path.set(image.file_path, image);
             this.images_by_url.set(image.info.resource_url, image);
         }
         

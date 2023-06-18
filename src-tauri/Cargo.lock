@@ -2635,7 +2635,7 @@ dependencies = [
 
 [[package]]
 name = "philia_gui"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
  "base64 0.21.2",
  "cached",
