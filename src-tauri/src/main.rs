@@ -70,6 +70,7 @@ fn main() {
 			images::refresh_images,
 			images::get_image_tags,
 			images::copy_post_tags,
+			images::copy_post_image_url,
 			images::get_image_categories,
 			images::generate_image_preview,
 			settings::get_settings,

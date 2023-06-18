@@ -76,11 +76,7 @@ export function Search(props: Props): ReactElement[] {
         if(source === EMPTY_SOURCE) {
             set_tags([]);
         } else {
-            invoke<string[] | null>("get_source_tags", {source: source.name})
-                .then(result => {
-                    console.log(result);
-                    set_tags(result);
-                });
+            invoke<string[] | null>("get_source_tags", {source: source.name}).then(set_tags);
         }
     }, [source])
     
@@ -344,6 +340,11 @@ export function SearchView(props: ViewProps): ReactElement {
                                     props.set_saved_images(images);
                                 }}>
                                     Download
+                                </Button>
+                                <Button variant="contained" onClick={async () => {
+                                    await invoke("copy_post_image_url", {post: post_view});
+                                }}>
+                                    Copy image URL
                                 </Button>
                             </Stack>
                         </Stack>

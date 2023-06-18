@@ -117,6 +117,27 @@ pub async fn copy_post_tags(post: Post, handle: AppHandle) {
 }
 
 #[tauri::command]
+pub async fn copy_post_image_url(post: Post, handle: AppHandle) {
+	match post.resource_url {
+		Some(url) if handle.clipboard_manager().write_text(&url).is_ok() => {
+			let id = &handle.config().tauri.bundle.identifier;
+			let _ = tauri::api::notification::Notification::new(id)
+				.title("Image URL copied")
+				.body("The post's image URL has been copied to your clipboard.")
+				.show();
+		}
+		
+		_ => {
+			let id = &handle.config().tauri.bundle.identifier;
+			let _ = tauri::api::notification::Notification::new(id)
+				.title("Image URL could not be copied")
+				.body("An error has occurred while copying the post's image URL to your clipboard.")
+				.show();
+		}
+	}
+}
+
+#[tauri::command]
 pub async fn generate_image_preview(
 	path: PathBuf, size: u32, handle: AppHandle,
 ) -> Result<String, String> {
