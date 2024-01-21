@@ -103,11 +103,14 @@ public interface IGetTags
 
 public interface IGetAllTags
 {
-	public bool DirectTagRetrieval { get; }
-	public Task<IList<Tag>> GetAllTags(TagOrder order);
 	public Task<IList<Tag>> GetAllTags(TagOrder order, Action<IReadOnlyList<Tag>>? callback, CancellationToken cancellationToken);
+	
+	public Task<IList<Tag>> GetAllTags(TagOrder order) => GetAllTags(order, null, CancellationToken.None);
 	public Task<IList<Tag>> GetAllTags(TagOrder order, CancellationToken cancellationToken) => GetAllTags(order, null, cancellationToken);
 	public Task<IList<Tag>> GetAllTags(TagOrder order, Action<IReadOnlyList<Tag>> callback) => GetAllTags(order, callback, CancellationToken.None);
 }
 
-
+public interface IEmbeddedTags
+{
+	public Tag[] EmbeddedTags { get; }
+}

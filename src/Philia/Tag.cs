@@ -5,12 +5,7 @@ using System.Text.Json;
 
 namespace Philia;
 
-public readonly record struct Tag
-{
-	public required ulong Id { get; init; }
-	public required uint Count { get; init; }
-	public required string Name { get; init; }
-}
+public readonly record struct Tag(ulong Id, uint Count, string Name);
 
 [JsonConverter(typeof (TagCollectionJsonConverter))]
 public sealed class TagCollection : IEnumerable<string>, IEnumerable<KeyValuePair<string, FrozenSet<string>>>
