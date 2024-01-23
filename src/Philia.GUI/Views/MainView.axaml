@@ -93,7 +93,7 @@
 			<DockPanel LastChildFill="True">
 				<controls:ColorZone 
 					DockPanel.Dock="Top" VerticalAlignment="Top" HorizontalAlignment="Stretch" 
-					Height="56" Mode="PrimaryLight" ZIndex="1">
+					Height="80" Mode="Standard" ZIndex="1">
 					<DockPanel LastChildFill="True" Margin="8 0 8 0">
 						<ToggleButton DockPanel.Dock="Left" Name="NavDrawerSwitch" Width="32" Height="32" Padding="4">
 							<material:MaterialIcon Kind="Menu" Width="24" Height="24" />
@@ -103,8 +103,17 @@
 							<material:MaterialIcon Kind="MoreVert" Width="24" Height="24" />
 						</ToggleButton>
 						
-						<StackPanel>
-						</StackPanel>
+						<Carousel SelectedIndex="{Binding ElementName=CurrentTabMenu, Path=SelectedIndex, Mode=OneWay}">
+							<Carousel.PageTransition>
+								<CompositePageTransition>
+									<PageSlide Duration="0:00:00.200" Orientation="Vertical"/>
+								</CompositePageTransition>
+							</Carousel.PageTransition>
+							
+							<Carousel.Items>
+								<views:SearchControls/>
+							</Carousel.Items>
+						</Carousel>
 					</DockPanel>
 				</controls:ColorZone>
 				

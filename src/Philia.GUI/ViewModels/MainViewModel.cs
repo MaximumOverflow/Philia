@@ -1,25 +1,14 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Philia.GUI.ViewModels;
 
-public enum CurrentTab
-{
-	Search,
-	Gallery,
-	Datasets,
-	Downloads,
-	Plugins,
-	Settings,
-}
-
 public sealed partial class MainViewModel : ViewModelBase
 {
-	[ObservableProperty]
-	private CurrentTab _currentTab;
+	public readonly ObservableCollection<Plugin> Plugins;
 
-	[RelayCommand]
-	private void SetCurrentTab(CurrentTab tab)
+	public MainViewModel(IEnumerable<Plugin> plugins)
 	{
-		CurrentTab = tab;
+		Plugins = new ObservableCollection<Plugin>(plugins);
 	}
 }
