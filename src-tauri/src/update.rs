@@ -92,6 +92,10 @@ fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 		return Err("Updates not supported on this OS.".into());
 	}
 
+	let Ok(build_id) = std::env::var("BUILD_ID") else {
+		return Err("Could not retrieve current build id.".into());
+	};
+
 	let client = reqwest::blocking::Client::builder()
 		.user_agent(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
 		.build()?;
@@ -127,9 +131,9 @@ fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 			return Ok(false);
 		};
 
-		println!("BUILD_ID: {}", env!("BUILD_ID"));
+		println!("BUILD_ID: {}", build_id);
 		println!("LATEST_BUILD_ID: {}", latest.id);
-		if latest.id.to_string() == env!("BUILD_ID") {
+		if latest.id.to_string() == build_id {
 			return Ok(false);
 		}
 

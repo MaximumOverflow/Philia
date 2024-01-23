@@ -21,28 +21,36 @@ interface ImageProps {
     loadWhenVisible?: boolean,
 }
 
+enum LoadingStage {
+    NotLoaded,
+    Loading,
+    Loaded,
+    Error,
+}
+
 export function SavedImagePreview(props: ImageProps): ReactElement {
     const path = props.image.file_path;
     const preview = props.image.preview_data;
 
     const [src, set_src] = useState(preview);
-    const [stage, set_stage] = useState(0);
+    const [stage, set_stage] = useState(LoadingStage.NotLoaded);
     const [visible, ref] = props.loadWhenVisible
         ? useVisibility<HTMLImageElement>()
         : [false, null];
 
     useEffect(() => {
-        if(stage === 1 && visible)
+        if(stage === LoadingStage.Loading && visible)
             invoke<string>("generate_image_preview", {path, size: props.previewSize || 512})
-                .then(src => { set_src(src); set_stage(2); })
-                .catch(console.error);
+                .then(src => { set_src(src); set_stage(LoadingStage.Loaded); })
+                .catch(err => { console.error(err); set_stage(LoadingStage.Error); });
     }, [stage, visible]);
-    
+
     return (
         <ImageListItem key={path} className={props.scaleOnHover ? "hover_scale" : ""}>
             {props.topElement}
             <img ref={ref} src={src} alt={path} loading="lazy" onLoad={() => {
-                if(stage === 0 && props.loadWhenVisible) set_stage(1);
+                if(stage === LoadingStage.NotLoaded && props.loadWhenVisible)
+                    set_stage(LoadingStage.Loading);
             }}/>
             <ImageListItemBar
                 title={path.split("/").pop()}

@@ -46,7 +46,7 @@ async fn initialize(app: AppHandle) {
 
 fn main() {
 	if let Ok(value) = std::env::var("PHILIA_WORK_DIR") {
-		std::env::set_current_dir(value).expect("Invalid work directory.");
+		std::env::set_current_dir(value).expect("Invalid work directory");
 	}
 	
 	if let Err(err) = check_for_updates() {

@@ -19,17 +19,17 @@ dunce = "1.0"
 tokio = "1.28"
 image = "0.24"
 fxhash = "0.2"
-cached = "0.43"
+cached = "0.48.1"
 base64 = "0.21"
 serde_json = "1"
 tempfile = "3.5"
-itertools = "0.10"
+itertools = "0.12.0"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.11", features = ["blocking"] }
-self_update = { version = "0.36", features = ["archive-zip", "compression-flate2", "compression-zip-deflate", "compression-zip-bzip2"] }
-philia = { git = "https://github.com/MaximumOverflow/Philia", rev = "baadc182", features = ["additional_post_metadata", "scripting"] }
+self_update = { version = "0.39.0", features = ["archive-zip", "compression-flate2", "compression-zip-deflate", "compression-zip-bzip2"] }
+philia = { git = "https://github.com/MaximumOverflow/Philia-Lib-Legacy", rev = "baadc182", features = ["additional_post_metadata", "scripting"] }
 tauri = { version = "1.2", features = ["clipboard-write-text", "dialog-all", "fs-remove-file", "fs-write-file", "notification-all", "path-all", "protocol-asset", "shell-open"] }
 
 [profile.dev.package."*"]
@@ -41,6 +41,6 @@ opt-level = 3
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
 default = ["custom-protocol"]
-# this feature is used used for production builds where `devPath` points to the filesystem
+# this feature is used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
