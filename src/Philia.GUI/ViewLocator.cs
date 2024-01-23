@@ -1,8 +1,3 @@
-using System;
-using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Philia.GUI.ViewModels;
-
 namespace Philia.GUI;
 
 public class ViewLocator : IDataTemplate

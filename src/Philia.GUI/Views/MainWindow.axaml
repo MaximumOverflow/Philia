@@ -6,7 +6,7 @@
         xmlns:views="clr-namespace:Philia.GUI.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Philia.GUI.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/icon.ico"
         Title="Philia.GUI">
         <views:MainView />
 </Window>

@@ -1,8 +1,25 @@
-﻿namespace Philia.GUI.ViewModels;
+﻿using CommunityToolkit.Mvvm.Input;
 
-public class MainViewModel : ViewModelBase
+namespace Philia.GUI.ViewModels;
+
+public enum CurrentTab
 {
-#pragma warning disable CA1822 // Mark members as static
-	public string Greeting => "Welcome to Avalonia!";
-#pragma warning restore CA1822 // Mark members as static
+	Search,
+	Gallery,
+	Datasets,
+	Downloads,
+	Plugins,
+	Settings,
+}
+
+public sealed partial class MainViewModel : ViewModelBase
+{
+	[ObservableProperty]
+	private CurrentTab _currentTab;
+
+	[RelayCommand]
+	private void SetCurrentTab(CurrentTab tab)
+	{
+		CurrentTab = tab;
+	}
 }

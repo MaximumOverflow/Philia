@@ -1,16 +1,130 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Philia.GUI.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Philia.GUI.Views.MainView"
-             x:DataType="vm:MainViewModel">
-  <Design.DataContext>
-    <!-- This only sets the DataContext for the previewer in an IDE,
-         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-    <vm:MainViewModel />
-  </Design.DataContext>
-
-  <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:vm="clr-namespace:Philia.GUI.ViewModels"
+			 xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+			 xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+			 xmlns:views="clr-namespace:Philia.GUI.Views"
+			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 x:Class="Philia.GUI.Views.MainView"
+			 x:DataType="vm:MainViewModel">
+	<Design.DataContext>
+		<vm:MainViewModel/>
+	</Design.DataContext>
+	
+	<controls:SnackbarHost HostName="Root">
+		<controls:NavigationDrawer LeftDrawerOpened="{Binding ElementName=NavDrawerSwitch, Path=IsChecked, Mode=TwoWay}">
+			<controls:NavigationDrawer.LeftDrawerContent>
+				<ScrollViewer>
+					<StackPanel>
+						<controls:ColorZone Mode="Standard" Height="180">
+						<StackPanel>
+							<Image Width="96" Height="120"
+								HorizontalAlignment="Center" VerticalAlignment="Center"
+								Source="avares://Philia.GUI/Assets/icon.ico" Margin="0,0,0,-8"/>
+							<TextBlock Classes="Headline6" Text="Philia" HorizontalAlignment="Center"/>
+							<TextBlock Classes="Subtitle1" Text="Image Scraper" HorizontalAlignment="Center"/>
+						</StackPanel>
+						</controls:ColorZone>
+						<ListBox Name="CurrentTabMenu">
+							<ListBox.Styles>
+								<Style Selector="ListBoxItem">
+									<Setter Property="Height" Value="48"/>
+									<Setter Property="Padding" Value="16,0"/>
+									<Setter Property="VerticalContentAlignment" Value="Center"/>
+								</Style>
+								<Style Selector="ListBoxItem > StackPanel">
+									<Setter Property="Spacing" Value="4"/>
+									<Setter Property="Orientation" Value="Horizontal"/>
+									<Setter Property="VerticalAlignment" Value="Center"/>
+								</Style>
+								<Style Selector="ListBoxItem > StackPanel > TextBlock">
+									<Setter Property="FontSize" Value="20"/>
+									<Setter Property="VerticalAlignment" Value="Center"/>
+								</Style>
+								<Style Selector="ListBoxItem > StackPanel > material|MaterialIcon">
+									<Setter Property="Width" Value="20"/>
+									<Setter Property="Height" Value="20"/>
+									<Setter Property="VerticalAlignment" Value="Center"/>
+								</Style>
+							</ListBox.Styles>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Search"/>
+									<TextBlock Text="Search"/>
+								</StackPanel>
+							</ListBoxItem>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Image"/>
+									<TextBlock Text="Gallery"/>
+								</StackPanel>
+							</ListBoxItem>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Database"/>
+									<TextBlock Text="Datasets"/>
+								</StackPanel>
+							</ListBoxItem>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Download"/>
+									<TextBlock Text="Downloads"/>
+								</StackPanel>
+							</ListBoxItem>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Plugin"/>
+									<TextBlock Text="Plugins"/>
+								</StackPanel>
+							</ListBoxItem>
+							<ListBoxItem>
+								<StackPanel>
+									<material:MaterialIcon Kind="Settings"/>
+									<TextBlock Text="Settings"/>
+								</StackPanel>
+							</ListBoxItem>
+						</ListBox>
+					</StackPanel>
+				</ScrollViewer>
+			</controls:NavigationDrawer.LeftDrawerContent>
+			
+			<DockPanel LastChildFill="True">
+				<controls:ColorZone 
+					DockPanel.Dock="Top" VerticalAlignment="Top" HorizontalAlignment="Stretch" 
+					Height="56" Mode="PrimaryLight" ZIndex="1">
+					<DockPanel LastChildFill="True" Margin="8 0 8 0">
+						<ToggleButton DockPanel.Dock="Left" Name="NavDrawerSwitch" Width="32" Height="32" Padding="4">
+							<material:MaterialIcon Kind="Menu" Width="24" Height="24" />
+						</ToggleButton>
+						
+						<ToggleButton DockPanel.Dock="Right" Name="MoreOptionsSwitch" Width="32" Height="32" Padding="4">
+							<material:MaterialIcon Kind="MoreVert" Width="24" Height="24" />
+						</ToggleButton>
+						
+						<StackPanel>
+						</StackPanel>
+					</DockPanel>
+				</controls:ColorZone>
+				
+				<Carousel SelectedIndex="{Binding ElementName=CurrentTabMenu, Path=SelectedIndex, Mode=OneWay}">
+					<Carousel.PageTransition>
+						<CompositePageTransition>
+							<PageSlide Duration="0:00:00.200" Orientation="Vertical"/>
+						</CompositePageTransition>
+					</Carousel.PageTransition>
+				
+					<Carousel.Items>
+						<views:SearchTab/>
+						<views:GalleryTab/>
+						<views:DatasetsTab/>
+						<views:DownloadsTab/>
+						<views:PluginsTab/>
+						<views:SettingsTab/>
+					</Carousel.Items>
+				</Carousel>
+			</DockPanel>
+		</controls:NavigationDrawer>
+	</controls:SnackbarHost>
 </UserControl>
