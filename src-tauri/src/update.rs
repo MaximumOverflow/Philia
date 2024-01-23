@@ -59,7 +59,7 @@ pub fn check_for_updates() -> Result<(), Box<dyn Error>> {
 fn fetch_latest_stable(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 	let releases = self_update::backends::github::ReleaseList::configure()
 		.repo_owner("MaximumOverflow")
-		.repo_name("Philia-GUI")
+		.repo_name("Philia")
 		.build().unwrap()
 		.fetch()?;
 
@@ -115,7 +115,7 @@ fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 	}
 
 	{
-		let url = Url::parse("https://api.github.com/repos/MaximumOverflow/Philia-GUI/actions/runs").unwrap();
+		let url = Url::parse("https://api.github.com/repos/MaximumOverflow/Philia/actions/runs").unwrap();
 		let result = client.get(url).send()?;
 		let json = result.bytes()?.to_vec();
 
@@ -141,7 +141,7 @@ fn fetch_latest_nightly(out_path: &Path) -> Result<bool, Box<dyn Error>> {
 	}
 
 	println!("Downloading the latest nightly build...");
-	let url = Url::parse("https://nightly.link/MaximumOverflow/Philia-GUI/workflows/continuous_build/continous_build/Windows-x86_64.zip").unwrap();
+	let url = Url::parse("https://nightly.link/MaximumOverflow/Philia/workflows/continuous_build/continous_build/Windows-x86_64.zip").unwrap();
 	let result = client.get(url).send()?;
 	let bytes = result.bytes()?.to_vec();
 	

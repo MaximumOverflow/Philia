@@ -2,10 +2,10 @@
 <h1 align="center">Philia</h1>
 
 <p align="center">
-    <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/MaximumOverflow/Philia-GUI/total?style=for-the-badge">
-    <img alt="GitHub release (latest by date including pre-releases)" src="https://img.shields.io/github/v/release/MaximumOverflow/Philia-GUI?include_prereleases&style=for-the-badge">
-    <img alt="GitHub issues" src="https://img.shields.io/github/issues/MaximumOverflow/Philia-GUI?color=%23366ace&style=for-the-badge">
-    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/MaximumOverflow/Philia-GUI?color=%23dfb317&style=for-the-badge">
+    <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/MaximumOverflow/Philia/total?style=for-the-badge">
+    <img alt="GitHub release (latest by date including pre-releases)" src="https://img.shields.io/github/v/release/MaximumOverflow/Philia?include_prereleases&style=for-the-badge">
+    <img alt="GitHub issues" src="https://img.shields.io/github/issues/MaximumOverflow/Philia?color=%23366ace&style=for-the-badge">
+    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/MaximumOverflow/Philia?color=%23dfb317&style=for-the-badge">
 </p>
 
 Philia is a simple imageboard scraping application with extensive support for AI dataset creation.
