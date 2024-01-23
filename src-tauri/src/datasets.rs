@@ -181,7 +181,7 @@ pub async fn export_dataset(index: usize, path: PathBuf, handle: AppHandle) -> R
 
 		let tags = get_tag_string(&post.info, &dataset.settings.tags);
 		let mut tags_destination = path.as_path().join(file_stem);
-		tags_destination.set_extension("json");
+		tags_destination.set_extension("txt");
 
 		if let Err(err) = std::fs::write(tags_destination, tags) {
 			eprintln!("{:?}", err);
