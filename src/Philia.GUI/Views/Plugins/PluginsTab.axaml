@@ -2,7 +2,67 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
+             xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:philia="clr-namespace:Philia;assembly=Philia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Philia.GUI.Views.PluginsTab">
-	<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Plugins"/>
+             x:Class="Philia.GUI.Views.PluginsTab"
+             x:DataType="viewModels:MainViewModel">
+	<StackPanel Margin="8" Spacing="8">
+		<StackPanel.Styles>
+			<Styles>
+				<Style Selector="TextBlock">
+					<Setter Property="VerticalAlignment" Value="Center"/>
+				</Style>
+			</Styles>
+		</StackPanel.Styles>
+		<Expander Header="Installed">
+			<ItemsRepeater ItemsSource="{Binding Plugins}">
+				<ItemsRepeater.Layout>
+					<StackLayout/>
+				</ItemsRepeater.Layout>
+		
+				<ItemsRepeater.ItemTemplate>
+					<DataTemplate DataType="viewModels:Plugin">
+						<Expander Margin="8">
+							<Expander.Header>
+								<DockPanel LastChildFill="True">
+									<TextBlock DockPanel.Dock="Left" Text="{Binding Name}"/>
+									<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0 0 8 0">
+										<Button>
+											<material:MaterialIcon Kind="Info"/>
+										</Button>
+										<Button>
+											<material:MaterialIcon Kind="Delete"/>
+										</Button>
+									</StackPanel>
+								</DockPanel>
+							</Expander.Header>
+							
+							<ItemsRepeater ItemsSource="{Binding Sources}">
+								<ItemsRepeater.Layout>
+									<StackLayout/>
+								</ItemsRepeater.Layout>
+		
+								<ItemsRepeater.ItemTemplate>
+									<DataTemplate DataType="philia:Source">
+										<ListBoxItem>
+											<DockPanel LastChildFill="True">
+												<TextBlock DockPanel.Dock="Left" Text="{Binding Name}"/>
+												<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+													<Button>
+														<material:MaterialIcon Kind="Settings"/>
+													</Button>
+												</StackPanel>
+											</DockPanel>
+										</ListBoxItem>
+									</DataTemplate>
+								</ItemsRepeater.ItemTemplate>
+							</ItemsRepeater>
+						</Expander>
+					</DataTemplate>
+				</ItemsRepeater.ItemTemplate>
+			</ItemsRepeater>
+		</Expander>
+	</StackPanel>
 </UserControl>

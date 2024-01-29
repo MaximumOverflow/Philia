@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>Philia.Sources</RootNamespace>
+        <Authors>Philia Team, MaximumOverflow</Authors>
     </PropertyGroup>
 
     <ItemGroup>

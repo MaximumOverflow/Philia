@@ -4,8 +4,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
              xmlns:material="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:philia="clr-namespace:Philia;assembly=Philia"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="64"
-             x:Class="Philia.GUI.Views.SearchControls">
+             x:Class="Philia.GUI.Views.SearchControls"
+             x:DataType="viewModels:MainViewModel">
 	<StackPanel Orientation="Horizontal" Spacing="8" Margin="8" HorizontalAlignment="Center">
 		<StackPanel.Styles>
 			<Style Selector="TextBox">
@@ -33,24 +36,25 @@
 			</Style>
 		</StackPanel.Styles>
 		
-		<TextBox UseFloatingWatermark="True" Classes="outline" assists:TextFieldAssist.Label="Page" Text="1"/>
-		<TextBox UseFloatingWatermark="True" Classes="outline" assists:TextFieldAssist.Label="Posts per page" Text="32"/>
+		<TextBox UseFloatingWatermark="True" Classes="outline" assists:TextFieldAssist.Label="Page" Text="{Binding Search.Page}"/>
+		<TextBox UseFloatingWatermark="True" Classes="outline" assists:TextFieldAssist.Label="Posts per page" Text="{Binding Search.PostsPerPage}"/>
 		
-		<ComboBox assists:ComboBoxAssist.Label="Source">
-			<ComboBoxItem>Source 1</ComboBoxItem>
-			<ComboBoxItem>Source 2</ComboBoxItem>
-			<ComboBoxItem>Source 3</ComboBoxItem>
-			<ComboBoxItem>Source 4</ComboBoxItem>
+		<ComboBox assists:ComboBoxAssist.Label="Source" ItemsSource="{Binding Sources}" SelectedValue="{Binding Search.Source}">
+			<ComboBox.ItemTemplate>
+				<DataTemplate DataType="philia:Source">
+					<TextBlock Text="{Binding Name}"/>
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
 		</ComboBox>
 		
-		<ComboBox assists:ComboBoxAssist.Label="Sorting">
+		<ComboBox assists:ComboBoxAssist.Label="Sorting" SelectedValue="{Binding Search.Sorting}">
 			<ComboBoxItem>Newest</ComboBoxItem>
 			<ComboBoxItem>Oldest</ComboBoxItem>
 			<ComboBoxItem>Most liked</ComboBoxItem>
 			<ComboBoxItem>Least liked</ComboBoxItem>
 		</ComboBox>
 		
-		<Button Classes="light">
+		<Button Classes="light" Click="Search">
 			<StackPanel Orientation="Horizontal">
 				<material:MaterialIcon Kind="Search"/>
 				<TextBlock Text="Search"/>

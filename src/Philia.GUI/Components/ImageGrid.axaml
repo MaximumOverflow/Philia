@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
+             xmlns:philia="clr-namespace:Philia;assembly=Philia"
+             xmlns:components="clr-namespace:Philia.GUI.Components"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Philia.GUI.Components.ImageGrid"
+             x:DataType="viewModels:ImageSet">
+	<ScrollViewer ClipToBounds="False">
+		<ItemsRepeater ItemsSource="{Binding Posts}" Margin="16" HorizontalAlignment="Center" ClipToBounds="False">
+			<ItemsRepeater.Styles>
+				<Styles>
+					<Style Selector="components|ImageGridImage">
+						<Setter Property="RenderTransform" Value="none"/>
+						<Setter Property="Transitions">
+							<Transitions>
+								<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+							</Transitions>
+						</Setter>
+					</Style>
+					<Style Selector="components|ImageGridImage:pointerover">
+						<Setter Property="RenderTransform" Value="scale(1.05)"/>
+					</Style>
+					<Style Selector="components|ImageGridImage:pressed">
+						<Setter Property="RenderTransform" Value="scale(0.95)"/>
+					</Style>
+				</Styles>
+			</ItemsRepeater.Styles>
+		
+			<ItemsRepeater.Layout>
+				<UniformGridLayout Orientation="Horizontal"
+				                   ItemsJustification="Start" MinColumnSpacing="12" MinRowSpacing="12"/>
+			</ItemsRepeater.Layout>
+			<ItemsRepeater.ItemTemplate>
+				<DataTemplate DataType="philia:Post">
+					<components:ImageGridImage/>
+				</DataTemplate>
+			</ItemsRepeater.ItemTemplate>
+		</ItemsRepeater>
+	</ScrollViewer>
+</UserControl>

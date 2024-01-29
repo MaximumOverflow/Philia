@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:views="clr-namespace:Philia.GUI.Views"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="64"
+             x:Class="Philia.GUI.Views.SearchBar"
+             x:DataType="views:ISearchBarContext">
+	<Panel>
+		<Panel.Styles>
+			<Styles>
+				<Style Selector="controls|Card">
+					<Setter Property="Opacity" Value="0.4"></Setter>
+					<Setter Property="Transitions">
+						<Transitions>
+							<DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+						</Transitions>
+					</Setter>
+				</Style>
+				<Style Selector="controls|Card:pointerover">
+					<Setter Property="Opacity" Value="1"></Setter>
+				</Style>
+			</Styles>
+		</Panel.Styles>
+		<controls:Card Height="64">
+			<DockPanel LastChildFill="True">
+				<ScrollViewer DockPanel.Dock="Left">
+					<ItemsRepeater ItemsSource="{Binding Query}">
+						<ItemsRepeater.Layout>
+							<StackLayout Spacing="4" Orientation="Horizontal"/>
+						</ItemsRepeater.Layout>
+						<ItemsRepeater.ItemTemplate>
+							<DataTemplate DataType="system:String">
+								<Border CornerRadius="32" Height="32"
+								        Background="{Binding ., Converter={x:Static views:TagColorConverter.Instance}}">
+									<TextBlock Text="{Binding .}" VerticalAlignment="Center" Margin="8"/>
+								</Border>
+							</DataTemplate>
+						</ItemsRepeater.ItemTemplate>
+					</ItemsRepeater>
+				</ScrollViewer>
+				<TextBox Name="Input" Watermark="Search tags" Margin="4 0 4 0"/>
+			</DockPanel>
+		</controls:Card>
+	</Panel>
+</UserControl>

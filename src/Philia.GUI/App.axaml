@@ -13,5 +13,6 @@
         <FluentTheme/>
         <materialIcons:MaterialIconStyles/>
         <themes:MaterialTheme BaseTheme="Dark" PrimaryColor="Orange" SecondaryColor="Lime" />
+        <StyleInclude Source="avares://AsyncImageLoader.Avalonia/AdvancedImage.axaml"/>
     </Application.Styles>
 </Application>

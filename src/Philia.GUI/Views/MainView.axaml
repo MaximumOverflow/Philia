@@ -112,6 +112,11 @@
 							
 							<Carousel.Items>
 								<views:SearchControls/>
+								<Panel/>
+								<Panel/>
+								<Panel/>
+								<Panel/>
+								<Panel/>
 							</Carousel.Items>
 						</Carousel>
 					</DockPanel>

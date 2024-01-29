@@ -2,7 +2,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:Philia.GUI.Views"
+             xmlns:components="clr-namespace:Philia.GUI.Components"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Philia.GUI.Views.SearchTab">
-	<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Search"/>
+             x:Class="Philia.GUI.Views.SearchTab"
+             x:DataType="viewModels:MainViewModel">
+	<Grid>
+		<components:ImageGrid DataContext="{Binding Search.ImageSet}"/>
+		<views:SearchBar VerticalAlignment="Top" Margin="16 16 16 0" 
+		                 Behaviour="{x:Static views:SearchSBB.Instance}"
+		                 DataContext="{Binding  Search}"/>
+	</Grid>
 </UserControl>
