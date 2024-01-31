@@ -7,7 +7,7 @@ namespace Philia;
 
 public abstract class Source
 {
-	private static readonly JsonSerializerOptions JsonSerializerOptions = new()
+	public static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
 		AllowTrailingCommas = true,
 		PropertyNameCaseInsensitive = true,

@@ -2,7 +2,62 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Philia.GUI.Views.DownloadsTab">
-	<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Downloads"/>
+             x:Class="Philia.GUI.Views.DownloadsTab"
+             x:DataType="viewModels:DownloadsViewModel">
+	<ScrollViewer>
+		<ItemsRepeater ItemsSource="{Binding Groups}" Margin="16">
+			<ItemsRepeater.Layout>
+				<StackLayout Spacing="8" Orientation="Vertical"/>
+			</ItemsRepeater.Layout>
+			<ItemsRepeater.Styles>
+				<Styles>
+					<Style Selector="ProgressBar">
+						<Setter Property="Height" Value="16"/>
+						<Setter Property="Margin" Value="16"/>
+						<Setter Property="CornerRadius" Value="16"/>
+						<Setter Property="ShowProgressText" Value="True"/>
+					</Style>
+					<Style Selector="ProgressBar Border">
+						<Setter Property="CornerRadius" Value="16"/>
+					</Style>
+				</Styles>
+			</ItemsRepeater.Styles>
+			<ItemsRepeater.ItemTemplate>
+				<DataTemplate>
+					<Expander>
+						<Expander.Header>
+							<DockPanel LastChildFill="True">
+								<TextBlock DockPanel.Dock="Left" Text="{Binding .}" VerticalAlignment="Center"/>
+								<ProgressBar Value="{Binding Progress}"/>
+							</DockPanel>
+						</Expander.Header>
+						<ScrollViewer MaxHeight="512">
+							<ItemsRepeater ItemsSource="{Binding Entries}" Margin="8">
+								<ItemsRepeater.Styles>
+									<Styles>
+										<Style Selector="TextBlock">
+											<Setter Property="FontSize" Value="18"/>
+										</Style>
+									</Styles>
+								</ItemsRepeater.Styles>
+								<ItemsRepeater.Layout>
+									<StackLayout Spacing="8"/>
+								</ItemsRepeater.Layout>
+								<ItemsRepeater.ItemTemplate>
+									<DataTemplate>
+										<DockPanel LastChildFill="True">
+											<TextBlock DockPanel.Dock="Right" Text="{Binding State}" Margin="4"/>
+											<TextBlock Text="{Binding Url}" Margin="4"/>
+										</DockPanel>
+									</DataTemplate>
+								</ItemsRepeater.ItemTemplate>
+							</ItemsRepeater>
+						</ScrollViewer>
+					</Expander>
+				</DataTemplate>
+			</ItemsRepeater.ItemTemplate>
+		</ItemsRepeater>
+	</ScrollViewer>
 </UserControl>

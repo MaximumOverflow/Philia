@@ -6,9 +6,10 @@ namespace Philia.GUI.ViewModels;
 
 public sealed partial class MainViewModel : ViewModelBase
 {
-	public ObservableCollection<Source> Sources { get; private set; }
-	public ObservableCollection<Plugin> Plugins { get; }
 	public SearchViewModel Search { get; }
+	public DownloadsViewModel Downloads { get; }
+	public ObservableCollection<Plugin> Plugins { get; }
+	public ObservableCollection<Source> Sources { get; private set; }
 
 	public MainViewModel(IEnumerable<Plugin> plugins)
 	{
@@ -21,6 +22,7 @@ public sealed partial class MainViewModel : ViewModelBase
 				Sources.Add(source);
 		};
 
-		Search = new SearchViewModel();
+		Search = new SearchViewModel(Sources);
+		Downloads = new DownloadsViewModel();
 	}
 }

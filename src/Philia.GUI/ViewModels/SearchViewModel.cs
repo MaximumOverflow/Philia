@@ -11,7 +11,7 @@ public sealed partial class SearchViewModel : ObservableObject, IImageSetView, I
 	private uint _postsPerPage = 32;
 
 	[ObservableProperty]
-	private object? _source = string.Empty;
+	private Source? _source;
 	
 	[ObservableProperty]
 	private PostOrder _sorting;
@@ -20,4 +20,10 @@ public sealed partial class SearchViewModel : ObservableObject, IImageSetView, I
 	private ImageSet _imageSet = new() { Posts = Array.Empty<Post>() };
 
 	public ObservableCollection<string> Query { get; } = [];
+
+	public SearchViewModel(ObservableCollection<Source> sources)
+	{
+		if (sources is [var source, ..])
+			Source = source;
+	}
 }

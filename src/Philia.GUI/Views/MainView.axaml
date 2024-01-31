@@ -9,10 +9,6 @@
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 			 x:Class="Philia.GUI.Views.MainView"
 			 x:DataType="vm:MainViewModel">
-	<Design.DataContext>
-		<vm:MainViewModel/>
-	</Design.DataContext>
-	
 	<controls:SnackbarHost HostName="Root">
 		<controls:NavigationDrawer LeftDrawerOpened="{Binding ElementName=NavDrawerSwitch, Path=IsChecked, Mode=TwoWay}">
 			<controls:NavigationDrawer.LeftDrawerContent>
@@ -70,7 +66,7 @@
 							<ListBoxItem>
 								<StackPanel>
 									<material:MaterialIcon Kind="Download"/>
-									<TextBlock Text="Downloads"/>
+									<TextBlock Text="{Binding Downloads.QueuedCount, StringFormat='Downloads ({0})'}"/>
 								</StackPanel>
 							</ListBoxItem>
 							<ListBoxItem>
@@ -133,7 +129,7 @@
 						<views:SearchTab/>
 						<views:GalleryTab/>
 						<views:DatasetsTab/>
-						<views:DownloadsTab/>
+						<views:DownloadsTab DataContext="{Binding Downloads}"/>
 						<views:PluginsTab/>
 						<views:SettingsTab/>
 					</Carousel.Items>

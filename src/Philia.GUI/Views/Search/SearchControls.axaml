@@ -61,7 +61,7 @@
 			</StackPanel>
 		</Button>
 		
-		<Button Classes="light">
+		<Button Classes="light" Click="Download">
 			<StackPanel Orientation="Horizontal">
 				<material:MaterialIcon Kind="Download"/>
 				<TextBlock Text="Download"/>
