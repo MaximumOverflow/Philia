@@ -30,8 +30,7 @@
 			</ItemsRepeater.Styles>
 		
 			<ItemsRepeater.Layout>
-				<UniformGridLayout Orientation="Horizontal"
-				                   ItemsJustification="Start" MinColumnSpacing="12" MinRowSpacing="12"/>
+				<UniformGridLayout Orientation="Horizontal" ItemsJustification="Start" MinColumnSpacing="12" MinRowSpacing="12"/>
 			</ItemsRepeater.Layout>
 			<ItemsRepeater.ItemTemplate>
 				<DataTemplate DataType="philia:Post">

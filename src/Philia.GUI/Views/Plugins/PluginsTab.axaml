@@ -8,7 +8,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Philia.GUI.Views.PluginsTab"
              x:DataType="viewModels:MainViewModel">
-	<StackPanel Margin="8" Spacing="8">
+	<StackPanel Margin="16" Spacing="8">
 		<StackPanel.Styles>
 			<Styles>
 				<Style Selector="TextBlock">

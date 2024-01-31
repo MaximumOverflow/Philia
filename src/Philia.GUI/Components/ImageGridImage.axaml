@@ -5,12 +5,24 @@
              xmlns:philia="clr-namespace:Philia;assembly=Philia"
              xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
              xmlns:components="clr-namespace:Philia.GUI.Components"
+             xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Philia.GUI.Components.ImageGridImage"
              x:DataType="philia:Post">
-	<Panel>
-		<asyncImageLoader:AdvancedImage 
-			Loader="{x:Static components:ImageGrid.ImageLoader}" Source="{Binding Media[0].Url}"
-			Width="192" Height="192" CornerRadius="8" Stretch="UniformToFill"/>
-	</Panel>
+	<controls:Card Padding="0" CornerRadius="8" ClipToBounds="True">
+		<Grid>
+			<StackPanel Spacing="8" VerticalAlignment="Center" IsVisible="{Binding !#Image.IsLoaded}">
+				<TextBlock 
+					Text="{Binding Id, StringFormat='Post {0}'}" 
+					FontSize="20" HorizontalAlignment="Center"/>
+				<avalonia:MaterialIcon Kind="BrokenImage" Width="64" Height="64"/>
+			</StackPanel>
+			<asyncImageLoader:AdvancedImage 
+				Name="Image"
+                Loader="{x:Static components:ImageGrid.ImageLoader}"
+                Source="{Binding Media[0].Url}" 
+                Width="192" Height="192" Stretch="UniformToFill"/>
+		</Grid>
+	</controls:Card>
 </UserControl>
