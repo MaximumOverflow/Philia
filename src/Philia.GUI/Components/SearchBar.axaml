@@ -34,7 +34,7 @@
 						<ItemsRepeater.ItemTemplate>
 							<DataTemplate DataType="system:String">
 								<Border CornerRadius="32" Height="32"
-								        Background="{Binding ., Converter={x:Static views:TagColorConverter.Instance}}">
+								        Background="{Binding ., Converter={x:Static views:SearchBarTagColorConverter.Instance}}">
 									<TextBlock Text="{Binding .}" VerticalAlignment="Center" Margin="8"/>
 								</Border>
 							</DataTemplate>

@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:components="clr-namespace:Philia.GUI.Components"
+             xmlns:philia="clr-namespace:Philia;assembly=Philia"
+             xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+             xmlns:views="clr-namespace:Philia.GUI.Views"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Philia.GUI.PostView"
+             x:DataType="philia:Post">
+	<Grid ColumnDefinitions="70*, 30*">
+		<controls:Card Grid.Column="0" Margin="16 16 8 16" Padding="0" ClipToBounds="True">
+			<ZoomBorder
+				Margin="0" Name="ZoomBorder" Stretch="Uniform" ZoomSpeed="1.2"
+				ClipToBounds="True" Focusable="True" EnablePan="True" PanButton="Left">
+				<asyncImageLoader:AdvancedImage 
+					Name="Image"
+					Loader="{x:Static components:ImageGrid.ImageLoader}"
+					Source="{Binding ., Converter='{x:Static components:PostToImageConverter.Instance}'}" 
+					Width="192" Height="192" Stretch="Uniform"/>
+			</ZoomBorder>
+		</controls:Card>
+		
+		<controls:Card Grid.Column="1" Margin="8 16 16 16" Padding="0" ClipToBounds="True">
+			<DockPanel LastChildFill="True">
+				<controls:Card DockPanel.Dock="Top" Margin="16 16 16 8">
+					<StackPanel>
+						<StackPanel.Styles>
+							<Styles>
+								<Style Selector="TextBlock">
+									<Setter Property="FontSize" Value="20"/>
+									<Setter Property="HorizontalAlignment" Value="Left"/>
+								</Style>
+								<Style Selector="SelectableTextBlock">
+									<Setter Property="FontSize" Value="20"/>
+									<Setter Property="HorizontalAlignment" Value="Right"/>
+									<Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+								</Style>
+								<Style Selector="Grid">
+									<Setter Property="Margin" Value="8 4 8 4"/>
+								</Style>
+							</Styles>
+						</StackPanel.Styles>
+						<Grid ColumnDefinitions="30*, 70*">
+							<TextBlock Grid.Column="0" Text="Id"/>
+							<SelectableTextBlock Grid.Column="1" Text="{Binding Id}"/>
+						</Grid>
+						<Grid ColumnDefinitions="30*, 70*">
+							<TextBlock Grid.Column="0" Text="Score"/>
+							<SelectableTextBlock Grid.Column="1" Text="{Binding Score}"/>
+						</Grid>
+						<Grid ColumnDefinitions="30*, 70*">
+							<TextBlock Grid.Column="0" Text="Rating"/>
+							<SelectableTextBlock Grid.Column="1" Text="{Binding Rating}"/>
+						</Grid>
+						<Grid ColumnDefinitions="30*, 70*">
+							<TextBlock Grid.Column="0" Text="Hash"/>
+							<SelectableTextBlock Grid.Column="1" Text="{Binding Hash}"/>
+						</Grid>
+					</StackPanel>
+				</controls:Card>
+				
+				<controls:Card DockPanel.Dock="Bottom" Margin="16 8 16 16">
+					<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+						<Button Classes="light">
+							Copy Tags
+						</Button>
+						<Button Classes="light">
+							Download
+						</Button>
+					</StackPanel>
+				</controls:Card>
+				
+				<ScrollViewer>
+					<controls:Card Margin="16 8 16 8">
+						<ItemsRepeater ItemsSource="{Binding Tags.Tags}" HorizontalAlignment="Center">
+							<ItemsRepeater.Layout>
+								<WrapLayout HorizontalSpacing="8" VerticalSpacing="8" Orientation="Horizontal"/>
+							</ItemsRepeater.Layout>
+							<ItemsRepeater.ItemTemplate>
+								<DataTemplate>
+									<Border CornerRadius="32" Height="32"
+									        Background="{Binding ., Converter={x:Static views:SearchBarTagColorConverter.Instance}}">
+										<TextBlock Text="{Binding .}" VerticalAlignment="Center" Margin="8"/>
+									</Border>
+								</DataTemplate>
+							</ItemsRepeater.ItemTemplate>
+						</ItemsRepeater>
+					</controls:Card>
+				</ScrollViewer>
+			</DockPanel>
+		</controls:Card>
+	</Grid>
+</UserControl>

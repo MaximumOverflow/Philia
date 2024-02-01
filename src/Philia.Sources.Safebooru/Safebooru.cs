@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Drawing;
 
-namespace Philia.Sources.Safebooru;
+namespace Philia.Sources;
 
 public sealed class Safebooru : Source, ISearchPosts
 {

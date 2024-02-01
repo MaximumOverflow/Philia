@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Text;
 
-namespace Philia.Sources.Rule34;
+namespace Philia.Sources;
 
 public sealed class Rule34(HttpClient client) : Source(client), ISearchPosts
 {

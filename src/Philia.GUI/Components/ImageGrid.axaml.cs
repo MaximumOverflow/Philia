@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using AsyncImageLoader.Loaders;
 using Avalonia.Media.Imaging;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
 using System.IO;
+using System.Linq;
+using Avalonia.Data.Converters;
 
 namespace Philia.GUI.Components;
 
@@ -37,7 +40,7 @@ public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient)
 	{
 		await _semaphore.WaitAsync();
 		var bitmap = await _memoryCache.GetOrAdd(url, LoadAsync).ConfigureAwait(false);
-		if (bitmap == null) _memoryCache.TryRemove(url, out Task<Bitmap> _);
+		if (bitmap == null) _memoryCache.TryRemove(url, out _);
 		_semaphore.Release();
 		return bitmap;
 	}
@@ -69,5 +72,20 @@ public sealed class ThumbnailLoader(HttpClient httpClient, bool disposeHttpClien
 		{
 			_semaphore.Release();
 		}
+	}
+}
+
+public sealed class PostToImageConverter : IValueConverter
+{
+	public static readonly PostToImageConverter Instance = new();
+	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+	{
+		if (value is not Post post || targetType != typeof(string)) return null;
+		return post.Media.FirstOrDefault(m => m.Original).Url;
+	}
+
+	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+	{
+		throw new NotSupportedException();
 	}
 }

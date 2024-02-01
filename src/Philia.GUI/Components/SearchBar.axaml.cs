@@ -78,9 +78,9 @@ public partial class SearchBar : UserControl
 	}
 }
 
-public class TagColorConverter : IValueConverter
+public class SearchBarTagColorConverter : IValueConverter
 {
-	public static readonly TagColorConverter Instance = new();
+	public static readonly SearchBarTagColorConverter Instance = new();
 	private static readonly SolidColorBrush Red = new(0xffd43d3d);
 	private static readonly SolidColorBrush Green = new(0xff4eba3d);
 

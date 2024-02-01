@@ -1,5 +1,5 @@
-﻿using System;
-using Avalonia;
+﻿using Avalonia;
+using System;
 
 namespace Philia.GUI.Desktop;
 
@@ -17,5 +17,6 @@ sealed class Program
 		=> AppBuilder.Configure<App>()
 			.UsePlatformDetect()
 			.WithInterFont()
+			.With(new SkiaOptions { MaxGpuResourceSizeBytes = 1000000000 })
 			.LogToTrace();
 }

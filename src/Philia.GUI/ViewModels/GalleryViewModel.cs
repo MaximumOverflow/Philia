@@ -32,7 +32,7 @@ public sealed partial class GalleryViewModel : ObservableObject, ISearchBarConte
 				Url = path,
 				Original = true,
 				Type = MediaType.Image,
-				Dimensions = new Size(image.Width, image.Height)
+				Dimensions = new Size(image.Width, image.Height),
 			};
 			post.Media.AsSpan().CopyTo(media.AsSpan(1));
 			ImageSet.Posts.Add(post with { Media = media });
