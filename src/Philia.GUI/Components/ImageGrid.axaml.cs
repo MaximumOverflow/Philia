@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using AsyncImageLoader.Loaders;
 using Avalonia.Media.Imaging;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Net.Http;
 using System.IO;
 
@@ -29,12 +30,15 @@ public partial class ImageGrid : UserControl
 
 public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient) : BaseWebImageLoader(httpClient, disposeHttpClient)
 {
+	private readonly SemaphoreSlim _semaphore = new(3, 3);
 	private readonly ConcurrentDictionary<string, Task<Bitmap?>> _memoryCache = new();
 	
 	public override async Task<Bitmap?> ProvideImageAsync(string url)
 	{
+		await _semaphore.WaitAsync();
 		var bitmap = await _memoryCache.GetOrAdd(url, LoadAsync).ConfigureAwait(false);
 		if (bitmap == null) _memoryCache.TryRemove(url, out Task<Bitmap> _);
+		_semaphore.Release();
 		return bitmap;
 	}
 

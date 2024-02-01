@@ -21,6 +21,12 @@ public partial class MainView : UserControl
 				GC.Collect(2);
 				return;
 			}
+
+			default:
+			{
+				base.OnKeyDown(e);
+				return;
+			}
 		}
 	}
 }
