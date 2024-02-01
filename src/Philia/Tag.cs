@@ -100,6 +100,7 @@ internal sealed class TagCollectionJsonConverter : JsonConverter<TagCollection>
 				case JsonTokenType.PropertyName:
 				{
 					var key = reader.GetString() ?? throw new JsonException();
+					reader.Read();
 					var value = reader.GetString() ?? string.Empty;
 					var tags = value.Split(' ', SplitOptions).ToFrozenSet();
 					tagCategories.Add(new KeyValuePair<string, FrozenSet<string>>(key, tags));

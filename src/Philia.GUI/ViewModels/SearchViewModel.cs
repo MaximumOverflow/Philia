@@ -17,7 +17,7 @@ public sealed partial class SearchViewModel : ObservableObject, IImageSetView, I
 	private PostOrder _sorting;
 	
 	[ObservableProperty]
-	private ImageSet _imageSet = new() { Posts = Array.Empty<Post>() };
+	private ImageSet _imageSet = new() { Posts = [] };
 
 	public ObservableCollection<string> Query { get; } = [];
 

@@ -5,6 +5,7 @@ namespace Philia.GUI;
 public partial class App : Application
 {
 	public static readonly HttpClient HttpClient;
+	public const string DownloadDir = "Downloads";
 
 	static App()
 	{
@@ -27,13 +28,15 @@ public partial class App : Application
 		{
 			case IClassicDesktopStyleApplicationLifetime desktop:
 				desktop.MainWindow = new MainWindow { DataContext = viewModel };
+				desktop.Exit += (_, _) => viewModel.Dispose();
 				break;
 			
 			case ISingleViewApplicationLifetime singleViewPlatform:
 				singleViewPlatform.MainView = new MainView { DataContext = viewModel };
+				singleViewPlatform.MainView.Unloaded += (_, _) => viewModel.Dispose();
 				break;
 		}
-
+		
 		base.OnFrameworkInitializationCompleted();
 	}
 }

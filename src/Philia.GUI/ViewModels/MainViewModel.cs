@@ -4,9 +4,10 @@ using System.Linq;
 
 namespace Philia.GUI.ViewModels;
 
-public sealed partial class MainViewModel : ViewModelBase
+public sealed partial class MainViewModel : ViewModelBase, IDisposable
 {
 	public SearchViewModel Search { get; }
+	public GalleryViewModel Gallery { get; }
 	public DownloadsViewModel Downloads { get; }
 	public ObservableCollection<Plugin> Plugins { get; }
 	public ObservableCollection<Source> Sources { get; private set; }
@@ -24,5 +25,11 @@ public sealed partial class MainViewModel : ViewModelBase
 
 		Search = new SearchViewModel(Sources);
 		Downloads = new DownloadsViewModel();
+		Gallery = new GalleryViewModel();
+	}
+
+	public void Dispose()
+	{
+		Downloads.Dispose();
 	}
 }

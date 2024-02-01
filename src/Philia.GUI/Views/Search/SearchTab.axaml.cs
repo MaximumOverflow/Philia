@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -30,7 +31,7 @@ public sealed class SearchSBB : ISearchBarBehaviour
 		try
 		{
 			var posts = await source.SearchPosts(search.Page, search.PostsPerPage, search.Sorting, include, exclude);
-			search.ImageSet = new ImageSet { Posts = posts };
+			search.ImageSet = new ImageSet { Posts = new ObservableCollection<Post>(posts) };
 			Console.WriteLine($"Search returned {posts.Length} posts");
 		}
 		catch (Exception e)

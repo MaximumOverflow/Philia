@@ -1,10 +1,10 @@
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Philia.GUI.ViewModels;
 
 public sealed partial class ImageSet
 {
-	public required IReadOnlyList<Post> Posts { get; init; }
+	public required ObservableCollection<Post> Posts { get; init; }
 }
 
 public interface IImageSetView

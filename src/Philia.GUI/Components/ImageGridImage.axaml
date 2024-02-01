@@ -9,7 +9,8 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Philia.GUI.Components.ImageGridImage"
-             x:DataType="philia:Post">
+             x:DataType="philia:Post"
+             Name="Self">
 	<controls:Card Padding="0" CornerRadius="8" ClipToBounds="True">
 		<Grid>
 			<StackPanel Spacing="8" VerticalAlignment="Center" IsVisible="{Binding !#Image.IsLoaded}">
@@ -20,7 +21,7 @@
 			</StackPanel>
 			<asyncImageLoader:AdvancedImage 
 				Name="Image"
-                Loader="{x:Static components:ImageGrid.ImageLoader}"
+                Loader="{Binding #Self.Loader}"
                 Source="{Binding Media[0].Url}" 
                 Width="192" Height="192" Stretch="UniformToFill"/>
 		</Grid>

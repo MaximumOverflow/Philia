@@ -1,17 +1,16 @@
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Collections.ObjectModel;
-using SixLabors.ImageSharp.Advanced;
 using System.Collections.Generic;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Avalonia.Threading;
 using System.Text.Json;
+using System.Threading;
 using System.Linq;
+using System.IO;
 using System.Text;
 using System.Xml;
-using System.IO;
-using System.Threading;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 using Image = SixLabors.ImageSharp.Image;
 
 namespace Philia.GUI.ViewModels;
@@ -57,17 +56,20 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 			try
 			{
 				Console.WriteLine($"Downloading {entry.Url}...");
+				
 				using var networkStream = App.HttpClient.GetStreamAsync(entry.Url).Result;
-
-				var image = Image.Load<Rgba32>(networkStream);
-				var metadata = new XmlDocument();
-				var postInfo = metadata.CreateElement("PostInfo");
-				postInfo.InnerText = JsonSerializer.Serialize(entry.Post, Source.JsonSerializerOptions);
-				image.Metadata.XmpProfile = new XmpProfile(Encoding.Default.GetBytes(metadata.OuterXml));
+				using var image = Image.Load<Rgba32>(networkStream);
+				
+				var json = JsonSerializer.Serialize(entry.Post);
+				var doc = new XmlDocument();
+				doc.AppendChild(doc.CreateElement("philia_metadata"));
+				doc.DocumentElement!.InnerText = json;
+				image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes(doc.OuterXml));
+				Console.WriteLine(doc.OuterXml);
 
 				using var fileStream = File.OpenWrite(entry.Path);
 				image.Save(fileStream, image.DetectEncoder(entry.Path));
-
+				
 				Dispatcher.UIThread.Invoke(() =>
 				{
 					entry.Group.IntProgress++;
@@ -126,7 +128,7 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 				if(post.Media.FirstOrDefault(m => m.Original) is not {Url: {} url, Type: MediaType.Image}) 
 					continue;
 				
-				var path = $"Downloads/{Path.GetFileName(url.AsSpan())}";
+				var path = $"{App.DownloadDir}/{Path.GetFileName(url.AsSpan())}";
 				if(Path.Exists(path)) continue;
 				
 				entries.Add(new Entry { Post = post, Url = url, Path = path, Group = this });

@@ -2,7 +2,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:components="clr-namespace:Philia.GUI.Components"
+             xmlns:views="clr-namespace:Philia.GUI.Views"
+             xmlns:viewModels="clr-namespace:Philia.GUI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Philia.GUI.Views.GalleryTab">
-	<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Gallery"/>
+             x:Class="Philia.GUI.Views.GalleryTab"
+             x:DataType="viewModels:MainViewModel">
+	<Grid>
+		<components:ImageGrid 
+			DataContext="{Binding Gallery.ImageSet}"
+			Loader="{x:Static components:ImageGrid.ThumbnailLoader}"/>
+		
+		<views:SearchBar VerticalAlignment="Top" Margin="16 16 16 0" 
+		                 Behaviour="{x:Static views:SearchSBB.Instance}"
+		                 DataContext="{Binding  Search}"/>
+	</Grid>
 </UserControl>
