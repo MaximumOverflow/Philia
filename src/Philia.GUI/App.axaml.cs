@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http;
 
 namespace Philia.GUI;
@@ -5,7 +6,7 @@ namespace Philia.GUI;
 public partial class App : Application
 {
 	public static readonly HttpClient HttpClient;
-	public const string DownloadDir = "Downloads";
+	public const string DownloadDir = "G:/TEST/";
 
 	static App()
 	{
@@ -21,6 +22,7 @@ public partial class App : Application
 
 	public override void OnFrameworkInitializationCompleted()
 	{
+		Directory.CreateDirectory(DownloadDir);
 		var plugins = Plugin.LoadPlugins("Plugins");
 		var viewModel = new MainViewModel(plugins);
 		

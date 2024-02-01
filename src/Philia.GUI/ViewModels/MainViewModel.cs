@@ -23,9 +23,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 				Sources.Add(source);
 		};
 
-		Search = new SearchViewModel(Sources);
-		Downloads = new DownloadsViewModel();
 		Gallery = new GalleryViewModel();
+		Search = new SearchViewModel(Sources);
+		Downloads = new DownloadsViewModel(Gallery);
 	}
 
 	public void Dispose()

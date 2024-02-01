@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Linq;
+using Avalonia.Threading;
 
 namespace Philia.GUI.Views;
 
@@ -31,7 +32,11 @@ public sealed class SearchSBB : ISearchBarBehaviour
 		try
 		{
 			var posts = await source.SearchPosts(search.Page, search.PostsPerPage, search.Sorting, include, exclude);
-			search.ImageSet = new ImageSet { Posts = new ObservableCollection<Post>(posts) };
+			await Dispatcher.UIThread.InvokeAsync(() =>
+			{
+				search.ImageLoader.ClearCache();
+				search.ImageSet = new ImageSet { Posts = new ObservableCollection<Post>(posts) };
+			}, DispatcherPriority.Background);
 			Console.WriteLine($"Search returned {posts.Length} posts");
 		}
 		catch (Exception e)

@@ -19,11 +19,14 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 {
 	[ObservableProperty]
 	private int _queuedCount;
+
+	private readonly GalleryViewModel _gallery;
 	public ObservableCollection<EntryGroup> Groups { get; } = [];
 	private readonly Channel<Entry> _downloadRequestQueue;
 
-	public DownloadsViewModel()
+	public DownloadsViewModel(GalleryViewModel gallery)
 	{
+		_gallery = gallery;
 		_downloadRequestQueue = Channel.CreateUnbounded<Entry>();
 		for (var i = 0; i < Environment.ProcessorCount; i++)
 		{
@@ -67,14 +70,15 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 				image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes(doc.OuterXml));
 				Console.WriteLine(doc.OuterXml);
 
-				using var fileStream = File.OpenWrite(entry.Path);
-				image.Save(fileStream, image.DetectEncoder(entry.Path));
+				using(var fileStream = File.OpenWrite(entry.Path))
+					image.Save(fileStream, image.DetectEncoder(entry.Path));
 				
 				Dispatcher.UIThread.Invoke(() =>
 				{
 					entry.Group.IntProgress++;
 					QueuedCount--;
 					entry.State = EntryState.Downloaded;
+					_gallery.TryLoadImage(entry.Path);
 				}, DispatcherPriority.Background);
 				Console.WriteLine($"{entry.Url} downloaded successfully");
 			}
@@ -128,7 +132,7 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 				if(post.Media.FirstOrDefault(m => m.Original) is not {Url: {} url, Type: MediaType.Image}) 
 					continue;
 				
-				var path = $"{App.DownloadDir}/{Path.GetFileName(url.AsSpan())}";
+				var path = Path.Combine(App.DownloadDir, Path.GetFileName(url));
 				if(Path.Exists(path)) continue;
 				
 				entries.Add(new Entry { Post = post, Url = url, Path = path, Group = this });

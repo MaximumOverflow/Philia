@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Philia.GUI.Components;
 
 namespace Philia.GUI.ViewModels;
 
@@ -20,6 +21,7 @@ public sealed partial class SearchViewModel : ObservableObject, IImageSetView, I
 	private ImageSet _imageSet = new() { Posts = [] };
 
 	public ObservableCollection<string> Query { get; } = [];
+	public RamCachedImageLoader ImageLoader { get; } = new(App.HttpClient, false);
 
 	public SearchViewModel(ObservableCollection<Source> sources)
 	{

@@ -9,7 +9,9 @@
              x:Class="Philia.GUI.Views.SearchTab"
              x:DataType="viewModels:MainViewModel">
 	<Grid>
-		<components:ImageGrid DataContext="{Binding Search.ImageSet}"/>
+		<components:ImageGrid 
+			DataContext="{Binding Search.ImageSet}"
+			Loader="{Binding $parent.((viewModels:MainViewModel)DataContext).Search.ImageLoader}"/>
 		<views:SearchBar VerticalAlignment="Top" Margin="16 16 16 0" 
 		                 Behaviour="{x:Static views:SearchSBB.Instance}"
 		                 DataContext="{Binding  Search}"/>

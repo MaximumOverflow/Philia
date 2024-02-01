@@ -16,7 +16,9 @@ public partial class MainView : UserControl
 			case Key.F9:
 			{
 				e.Handled = true;
-				GC.Collect();
+				GC.Collect(0);
+				GC.Collect(1);
+				GC.Collect(2);
 				return;
 			}
 		}

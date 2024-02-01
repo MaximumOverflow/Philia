@@ -8,27 +8,15 @@ namespace Philia.GUI.ViewModels;
 public sealed partial class GalleryViewModel : ObservableObject
 {
 	public ImageSet ImageSet { get; }
-	public FileSystemWatcher Watcher { get; }
 
 	public GalleryViewModel()
 	{
 		ImageSet = new ImageSet { Posts = [] };
-		Watcher = new FileSystemWatcher();
-		Watcher.Path = App.DownloadDir;
-		Watcher.Filter = "*.*";
-		Watcher.EnableRaisingEvents = true;
-		Watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size; 
-		Watcher.Created += (_, a) =>
-		{
-			Console.WriteLine(a.ChangeType);
-			TryLoadImage(a.FullPath);
-		};
-		
 		foreach (var file in Directory.EnumerateFiles(App.DownloadDir))
 			TryLoadImage(file);
 	}
 	
-	private void TryLoadImage(string path)
+	public void TryLoadImage(string path)
 	{
 		try
 		{
