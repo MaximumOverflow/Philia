@@ -34,7 +34,7 @@ public sealed class SearchSBB : ISearchBarBehaviour
 			var posts = await source.SearchPosts(page, search.PostsPerPage, search.Sorting, include, exclude);
 			await Dispatcher.UIThread.InvokeAsync(() =>
 			{
-				search.ImageLoader.ClearCache();
+				search.ImageLoader.ClearAndDisposeCache();
 				search.ImageSet = new ImageSet { Posts = new ObservableCollection<Post>(posts) };
 			});
 			Console.WriteLine($"Search returned {posts.Length} posts");

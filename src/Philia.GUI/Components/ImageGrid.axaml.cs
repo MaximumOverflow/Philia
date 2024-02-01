@@ -1,13 +1,13 @@
 using System.Collections.Concurrent;
-using System.Globalization;
 using AsyncImageLoader.Loaders;
+using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using System.Threading.Tasks;
+using System.Globalization;
 using System.Threading;
 using System.Net.Http;
-using System.IO;
 using System.Linq;
-using Avalonia.Data.Converters;
+using System.IO;
 
 namespace Philia.GUI.Components;
 
@@ -15,6 +15,7 @@ public partial class ImageGrid : UserControl
 {
 	public static readonly ThumbnailLoader ThumbnailLoader = new(App.HttpClient, false);
 	public static readonly RamCachedImageLoader ImageLoader = new(App.HttpClient, false);
+	public static readonly UncachedImageLoader UncachedImageLoader = new(App.HttpClient, false);
 	
 	public static readonly StyledProperty<BaseWebImageLoader> LoaderProperty =
 		AvaloniaProperty.Register<ImageGridImage, BaseWebImageLoader>(nameof(Loader), ImageLoader);
@@ -31,6 +32,18 @@ public partial class ImageGrid : UserControl
 	}
 }
 
+
+public class UncachedImageLoader(HttpClient httpClient, bool disposeHttpClient) : BaseWebImageLoader(httpClient, disposeHttpClient)
+{
+	private readonly SemaphoreSlim _semaphore = new(3, 3);
+	public override async Task<Bitmap?> ProvideImageAsync(string url)
+	{
+		await _semaphore.WaitAsync();
+		var bitmap = await LoadAsync(url).ConfigureAwait(false);
+		_semaphore.Release();
+		return bitmap;
+	}
+}
 public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient) : BaseWebImageLoader(httpClient, disposeHttpClient)
 {
 	private readonly SemaphoreSlim _semaphore = new(3, 3);
@@ -45,8 +58,12 @@ public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient)
 		return bitmap;
 	}
 
-	public void ClearCache()
+	public void ClearAndDisposeCache()
 	{
+		foreach (var task in _memoryCache.Values)
+			if(task.IsCompleted) 
+				task.Result?.Dispose();
+		
 		_memoryCache.Clear();
 		GC.Collect(0);
 	}

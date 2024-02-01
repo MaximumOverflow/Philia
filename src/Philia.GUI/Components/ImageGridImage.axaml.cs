@@ -1,6 +1,5 @@
 using AsyncImageLoader.Loaders;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 
 namespace Philia.GUI.Components;
 
@@ -14,6 +13,8 @@ public partial class ImageGridImage : UserControl
 		get => GetValue(LoaderProperty);
 		set => SetValue(LoaderProperty, value);
 	}
+	
+	private PostWindow? _window;
 	
 	public ImageGridImage()
 	{
@@ -34,11 +35,16 @@ public partial class ImageGridImage : UserControl
 
 	private void OpenPost(object? sender, TappedEventArgs e)
 	{
+		if (_window is not null) return;
 		if(DataContext is not Post post) return;
+		
 		var last = post.Source.LastIndexOf('.');
 		var source = last >= 0 ? post.Source[(last + 1)..] : post.Source;
-		var window = new PostWindow { Title = $"{source} - Post {post.Id}", DataContext = DataContext };
-		if (TopLevel.GetTopLevel(this) is MainWindow parent) window.Show(parent);
-		else window.Show();
+		
+		_window = new PostWindow { Title = $"{source} - Post {post.Id}", DataContext = DataContext };
+		_window.Closed += (_, _) => _window = null;
+		
+		if (TopLevel.GetTopLevel(this) is MainWindow parent) _window.Show(parent);
+		else _window.Show();
 	}
 }

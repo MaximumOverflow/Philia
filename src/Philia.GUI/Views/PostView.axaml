@@ -16,10 +16,9 @@
 				Margin="0" Name="ZoomBorder" Stretch="Uniform" ZoomSpeed="1.2"
 				ClipToBounds="True" Focusable="True" EnablePan="True" PanButton="Left">
 				<asyncImageLoader:AdvancedImage 
-					Name="Image"
-					Loader="{x:Static components:ImageGrid.ImageLoader}"
-					Source="{Binding ., Converter='{x:Static components:PostToImageConverter.Instance}'}" 
-					Width="192" Height="192" Stretch="Uniform"/>
+					Name="Image" Width="192" Height="192" Stretch="Uniform"
+					Loader="{x:Static components:ImageGrid.UncachedImageLoader}"
+					Source="{Binding ., Converter='{x:Static components:PostToImageConverter.Instance}'}"/>
 			</ZoomBorder>
 		</controls:Card>
 		
