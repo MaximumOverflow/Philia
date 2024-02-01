@@ -14,7 +14,7 @@
 			Loader="{x:Static components:ImageGrid.ThumbnailLoader}"/>
 		
 		<views:SearchBar VerticalAlignment="Top" Margin="16 16 16 0" 
-		                 Behaviour="{x:Static views:SearchSBB.Instance}"
-		                 DataContext="{Binding  Search}"/>
+		                 Behaviour="{x:Static views:GallerySBB.Instance}"
+		                 DataContext="{Binding Gallery}"/>
 	</Grid>
 </UserControl>

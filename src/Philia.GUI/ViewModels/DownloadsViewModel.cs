@@ -68,7 +68,6 @@ public sealed partial class DownloadsViewModel : ObservableObject, IDisposable
 				doc.AppendChild(doc.CreateElement("philia_metadata"));
 				doc.DocumentElement!.InnerText = json;
 				image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes(doc.OuterXml));
-				Console.WriteLine(doc.OuterXml);
 
 				using(var fileStream = File.OpenWrite(entry.Path))
 					image.Save(fileStream, image.DetectEncoder(entry.Path));

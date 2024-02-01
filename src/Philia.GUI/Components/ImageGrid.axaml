@@ -10,7 +10,7 @@
              x:DataType="viewModels:ImageSet"
              Name="Self">
 	<ScrollViewer ClipToBounds="False">
-		<ItemsRepeater ItemsSource="{Binding Posts}" Margin="16" HorizontalAlignment="Center" ClipToBounds="False">
+		<ItemsRepeater ItemsSource="{Binding Show}" Margin="16" HorizontalAlignment="Center" ClipToBounds="False">
 			<ItemsRepeater.Styles>
 				<Styles>
 					<Style Selector="components|ImageGridImage">

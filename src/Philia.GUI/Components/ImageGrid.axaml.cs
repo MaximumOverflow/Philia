@@ -49,15 +49,14 @@ public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient)
 	}
 }
 
-public sealed class ThumbnailLoader : BaseWebImageLoader
+public sealed class ThumbnailLoader(HttpClient httpClient, bool disposeHttpClient) : BaseWebImageLoader(httpClient, disposeHttpClient)
 {
-	public ThumbnailLoader(HttpClient httpClient, bool disposeHttpClient)
-		: base(httpClient, disposeHttpClient) {}
-
+	private readonly SemaphoreSlim _semaphore = new(3, 3);
 	public override async Task<Bitmap?> ProvideImageAsync(string url)
 	{
 		try
 		{
+			await _semaphore.WaitAsync();
 			await using var stream = File.OpenRead(url);
 			return Bitmap.DecodeToWidth(stream, 192);
 		}
@@ -65,6 +64,10 @@ public sealed class ThumbnailLoader : BaseWebImageLoader
 		{
 			Console.Error.WriteLine(e);
 			return null;
+		}
+		finally
+		{
+			_semaphore.Release();
 		}
 	}
 }

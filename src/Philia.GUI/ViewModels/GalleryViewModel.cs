@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Image = SixLabors.ImageSharp.Image;
 using Size = System.Drawing.Size;
 using System.Text.Json;
@@ -5,9 +6,10 @@ using System.IO;
 
 namespace Philia.GUI.ViewModels;
 
-public sealed partial class GalleryViewModel : ObservableObject
+public sealed partial class GalleryViewModel : ObservableObject, ISearchBarContext
 {
 	public ImageSet ImageSet { get; }
+	public ObservableCollection<string> Query { get; } = [];
 
 	public GalleryViewModel()
 	{
