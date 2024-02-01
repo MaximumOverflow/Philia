@@ -43,15 +43,15 @@ public sealed class Safebooru : Source, ISearchPosts
 				media = [
 					new Media
 					{
-						Url = $"https://safebooru.org/images/{post.Directory}/{post.Image}",
-						Original = true,
+						Url = $"https://safebooru.org/thumbnails/{post.Directory}/thumbnail_{Path.ChangeExtension(post.Image, ".jpg")}",
+						Original = false,
 						Type = Media.GetMediaType(Path.GetExtension(imageUrl.AsSpan())),
-						Dimensions = new Size((int)(post.Width ?? 0), (int)(post.Height ?? 0)),
+						Dimensions = default,
 					},
 					new Media
 					{
-						Url = $"https://safebooru.org/samples/{post.Directory}/{post.Image}",
-						Original = false,
+						Url = $"https://safebooru.org/images/{post.Directory}/{post.Image}",
+						Original = true,
 						Type = Media.GetMediaType(Path.GetExtension(imageUrl.AsSpan())),
 						Dimensions = new Size((int)(post.Width ?? 0), (int)(post.Height ?? 0)),
 					},
