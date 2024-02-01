@@ -23,6 +23,7 @@ public abstract partial class Booru : Source, ISearchPosts, IGetTags, IGetAllTag
 
 	public async Task<Philia.Post[]> SearchPosts(uint page, uint limit, PostOrder order, IEnumerable<string> include, IEnumerable<string> exclude)
 	{
+		page++;
 		var postOrder = order switch
 		{
 			PostOrder.Default => "",

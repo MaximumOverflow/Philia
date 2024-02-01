@@ -2,7 +2,7 @@
 
 public abstract partial class Booru : IEmbeddedTags
 {
-	public Tag[] EmbeddedTags { get; }
+	public Tag[] EmbeddedTags => AllEmbeddedTags;
 
 	private static Tag[] AllEmbeddedTags = new[]
 	{

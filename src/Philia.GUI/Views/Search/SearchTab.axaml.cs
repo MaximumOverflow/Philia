@@ -23,12 +23,15 @@ public sealed class SearchSBB : ISearchBarBehaviour
 		if(context is not SearchViewModel search) return;
 		if(search.Source is not ISearchPosts source) return;
 
-		var exclude = query.Where(t => t.StartsWith('-'));
 		var include = query.Where(t => !t.StartsWith('-'));
+		var exclude = query.Where(t => t.StartsWith('-')).Select(s => s[1..]);
 
+		var page = search.Page;
+		if (page > 0) page--;
+		
 		try
 		{
-			var posts = await source.SearchPosts(search.Page, search.PostsPerPage, search.Sorting, include, exclude);
+			var posts = await source.SearchPosts(page, search.PostsPerPage, search.Sorting, include, exclude);
 			await Dispatcher.UIThread.InvokeAsync(() =>
 			{
 				search.ImageLoader.ClearCache();
