@@ -47,8 +47,6 @@ public class RamCachedImageLoader(HttpClient httpClient, bool disposeHttpClient)
 
 public sealed class ThumbnailLoader : BaseWebImageLoader
 {
-	public ThumbnailLoader() {}
-
 	public ThumbnailLoader(HttpClient httpClient, bool disposeHttpClient)
 		: base(httpClient, disposeHttpClient) {}
 

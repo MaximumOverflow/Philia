@@ -47,7 +47,8 @@
 			</ComboBox.ItemTemplate>
 		</ComboBox>
 		
-		<ComboBox assists:ComboBoxAssist.Label="Sorting" SelectedValue="{Binding Search.Sorting}">
+		<ComboBox assists:ComboBoxAssist.Label="Sorting" SelectedIndex="{Binding Search.Sorting}">
+			<ComboBoxItem>Default</ComboBoxItem>
 			<ComboBoxItem>Newest</ComboBoxItem>
 			<ComboBoxItem>Oldest</ComboBoxItem>
 			<ComboBoxItem>Most liked</ComboBoxItem>

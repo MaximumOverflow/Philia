@@ -20,11 +20,8 @@ public sealed class SearchSBB : ISearchBarBehaviour
 	
 	public async Task Search(object? context, IReadOnlyList<string> query)
 	{
-		if(context is not SearchViewModel search)
-			return;
-		
-		if(search.Source is not ISearchPosts source) 
-			return;
+		if(context is not SearchViewModel search) return;
+		if(search.Source is not ISearchPosts source) return;
 
 		var exclude = query.Where(t => t.StartsWith('-'));
 		var include = query.Where(t => !t.StartsWith('-'));
@@ -36,7 +33,7 @@ public sealed class SearchSBB : ISearchBarBehaviour
 			{
 				search.ImageLoader.ClearCache();
 				search.ImageSet = new ImageSet { Posts = new ObservableCollection<Post>(posts) };
-			}, DispatcherPriority.Background);
+			});
 			Console.WriteLine($"Search returned {posts.Length} posts");
 		}
 		catch (Exception e)
