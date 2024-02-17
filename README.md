@@ -1,7 +1,7 @@
 <p align="center">
     <img src="icon.ico" alt="icon" width="200"/>
 </p>
-<h1 style="text-align: center">
+<h1 align="center">
     Philia
 </h1>
 
