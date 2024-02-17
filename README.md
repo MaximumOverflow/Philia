@@ -1,11 +1,11 @@
-<p style="text-align: center">
+<p align="center">
     <img src="icon.ico" alt="icon" width="200"/>
 </p>
 <h1 style="text-align: center">
     Philia
 </h1>
 
-<p style="text-align: center">
+<p align="center">
     <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/MaximumOverflow/Philia/total?style=for-the-badge">
     <img alt="GitHub release (latest by date including pre-releases)" src="https://img.shields.io/github/v/release/MaximumOverflow/Philia?include_prereleases&style=for-the-badge">
     <img alt="GitHub issues" src="https://img.shields.io/github/issues/MaximumOverflow/Philia?color=%23366ace&style=for-the-badge">
